@@ -3,15 +3,18 @@
 使用 QFluentWidgets 实现现代 Fluent Design 风格。
 """
 
+import hashlib
+
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
     QListWidgetItem,
+    QFrame,
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QColor
 
 from qfluentwidgets import (
     FluentWindow,
@@ -27,6 +30,7 @@ from qfluentwidgets import (
     CaptionLabel,
     InfoBar,
     InfoBarPosition,
+    ComboBox,
 )
 
 from app.core.db import Database
@@ -47,6 +51,102 @@ from app.ui.styles import (
     BTN_MIN_HEIGHT,
 )
 from app.utils.clipboard import copy_to_clipboard
+
+
+# ── 首字母头像配色 ──
+AVATAR_COLORS = [
+    "#0078d4", "#107c10", "#d83b01", "#b4009e",
+    "#008575", "#004e8c", "#8764b8", "#c30052",
+    "#e3008c", "#7a7574", "#767676", "#0063b1",
+]
+
+
+def _avatar_color(text: str) -> str:
+    """根据文本生成稳定的头像背景色"""
+    idx = int(hashlib.md5(text.encode()).hexdigest(), 16) % len(AVATAR_COLORS)
+    return AVATAR_COLORS[idx]
+
+
+def _first_char(text: str) -> str:
+    """取首字符（中文取第一个字，英文取首字母大写）"""
+    if not text:
+        return "?"
+    ch = text[0]
+    return ch.upper() if ch.isascii() else ch
+
+
+class EntryCardWidget(QFrame):
+    """条目卡片组件：左侧头像 + 右侧标题/用户名"""
+
+    def __init__(self, entry: Entry, parent=None):
+        super().__init__(parent)
+        self._entry = entry
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.setFixedHeight(56)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setStyleSheet("""
+            QFrame {
+                background: transparent;
+                border: none;
+                border-radius: 8px;
+            }
+            QFrame:hover {
+                background: rgba(0, 0, 0, 0.04);
+            }
+        """)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(12)
+
+        # ── 首字母头像 ──
+        avatar = QLabel(_first_char(self._entry.title))
+        avatar.setFixedSize(36, 36)
+        avatar.setAlignment(Qt.AlignCenter)
+        color = _avatar_color(self._entry.title)
+        avatar.setStyleSheet(f"""
+            QLabel {{
+                background: {color};
+                color: white;
+                font-size: 15px;
+                font-weight: 600;
+                border-radius: 18px;
+                border: none;
+            }}
+        """)
+        layout.addWidget(avatar)
+
+        # ── 文字区域 ──
+        text_layout = QVBoxLayout()
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(2)
+
+        title_label = QLabel(self._entry.title)
+        title_label.setStyleSheet("""
+            QLabel {
+                font-size: 13px;
+                font-weight: 600;
+                color: #1a1a1a;
+                background: transparent;
+                border: none;
+            }
+        """)
+        text_layout.addWidget(title_label)
+
+        user_label = QLabel(self._entry.username or "（无用户名）")
+        user_label.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #888;
+                background: transparent;
+                border: none;
+            }
+        """)
+        text_layout.addWidget(user_label)
+
+        layout.addLayout(text_layout, stretch=1)
 
 
 class MainWindow(FluentWindow):
@@ -84,7 +184,7 @@ class MainWindow(FluentWindow):
         layout.setContentsMargins(20, 12, 20, 20)
         layout.setSpacing(16)
 
-        # 左侧：搜索 + 分组 + 列表 + 按钮
+        # 左侧：搜索 + 分组下拉 + 列表 + 按钮
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -95,18 +195,15 @@ class MainWindow(FluentWindow):
         self._search_input.textChanged.connect(self._on_search)
         left_layout.addWidget(self._search_input)
 
-        # 分组筛选栏
-        group_card = CardWidget()
-        group_card.setFixedHeight(44)
-        group_layout = QHBoxLayout(group_card)
-        group_layout.setContentsMargins(8, 4, 8, 4)
-        group_layout.setSpacing(4)
+        # 分组下拉框
+        self._group_combo = ComboBox()
+        self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
+        self._group_combo.setPlaceholderText("全部分组")
+        self._group_combo.currentIndexChanged.connect(self._on_group_changed)
+        left_layout.addWidget(self._group_combo)
 
-        self._group_btns: dict[str, PushButton] = {}
         self._current_group = ""
-        self._refresh_groups(group_layout)
-
-        left_layout.addWidget(group_card)
+        self._refresh_groups()
 
         list_card = CardWidget()
         list_layout = QVBoxLayout(list_card)
@@ -186,6 +283,49 @@ class MainWindow(FluentWindow):
 
         return page
 
+    # ── 分组管理 ──
+
+    def _refresh_groups(self):
+        """刷新分组下拉框"""
+        self._group_combo.blockSignals(True)
+        current_text = self._group_combo.currentText()
+
+        self._group_combo.clear()
+        self._group_combo.addItem("全部分组", "")
+
+        groups = self._db.get_groups()
+        for group in groups:
+            self._group_combo.addItem(group, group)
+
+        # 恢复之前选中的分组
+        if current_text:
+            idx = self._group_combo.findText(current_text)
+            if idx >= 0:
+                self._group_combo.setCurrentIndex(idx)
+
+        self._group_combo.blockSignals(False)
+
+    def _on_group_changed(self, index: int):
+        """分组下拉框切换"""
+        self._current_group = self._group_combo.itemData(index) or ""
+        self._load_entries()
+
+    # ── 条目列表 ──
+
+    def _add_list_item(self, entry: Entry):
+        """添加一个卡片式列表项"""
+        item = QListWidgetItem()
+        item.setData(Qt.UserRole, entry.id)
+        item.setSizeHint(self._entry_card_size_hint())
+        self._entry_list.addItem(item)
+        card = EntryCardWidget(entry)
+        self._entry_list.setItemWidget(item, card)
+
+    def _entry_card_size_hint(self):
+        """卡片尺寸"""
+        from PyQt5.QtCore import QSize
+        return QSize(200, 56)
+
     def _load_entries(self):
         self._entry_list.clear()
         if self._current_group:
@@ -193,54 +333,7 @@ class MainWindow(FluentWindow):
         else:
             self._entries = self._db.get_all_entries()
         for entry in self._entries:
-            item = QListWidgetItem(f"{entry.title}  —  {entry.username}")
-            item.setData(Qt.UserRole, entry.id)
-            self._entry_list.addItem(item)
-
-    def _refresh_groups(self, layout=None):
-        """刷新分组按钮栏"""
-        if layout is None:
-            # 重建现有布局
-            parent = list(self._group_btns.values())[0].parentWidget() if self._group_btns else None
-            if parent is None:
-                return
-            layout = parent.layout()
-
-        # 清除旧按钮
-        for btn in self._group_btns.values():
-            layout.removeWidget(btn)
-            btn.deleteLater()
-        self._group_btns.clear()
-
-        # "全部"按钮
-        all_btn = PushButton("全部")
-        all_btn.setFixedHeight(32)
-        all_btn.setCheckable(True)
-        all_btn.setChecked(not self._current_group)
-        all_btn.clicked.connect(lambda: self._on_group_clicked(""))
-        layout.addWidget(all_btn)
-        self._group_btns[""] = all_btn
-
-        # 各分组按钮
-        groups = self._db.get_groups()
-        for group in groups:
-            btn = PushButton(group)
-            btn.setFixedHeight(32)
-            btn.setCheckable(True)
-            btn.setChecked(self._current_group == group)
-            btn.clicked.connect(lambda checked, g=group: self._on_group_clicked(g))
-            layout.addWidget(btn)
-            self._group_btns[group] = btn
-
-        layout.addStretch()
-
-    def _on_group_clicked(self, group: str):
-        """分组按钮点击"""
-        self._current_group = group
-        # 更新按钮选中状态
-        for name, btn in self._group_btns.items():
-            btn.setChecked(name == group)
-        self._load_entries()
+            self._add_list_item(entry)
 
     def _on_search(self, text: str):
         if not text.strip():
@@ -252,9 +345,7 @@ class MainWindow(FluentWindow):
             results = [e for e in results if e.group == self._current_group]
         self._entries = results
         for entry in self._entries:
-            item = QListWidgetItem(f"{entry.title}  —  {entry.username}")
-            item.setData(Qt.UserRole, entry.id)
-            self._entry_list.addItem(item)
+            self._add_list_item(entry)
 
     def _on_entry_selected(self, current, _previous):
         if current is None:
@@ -264,6 +355,8 @@ class MainWindow(FluentWindow):
         self._current_entry = self._db.get_entry(entry_id)
         if self._current_entry:
             self._show_detail(self._current_entry)
+
+    # ── 详情面板 ──
 
     def _show_detail(self, entry: Entry):
         self._detail_title.setText(entry.title)
@@ -287,6 +380,8 @@ class MainWindow(FluentWindow):
         self._notes_value.setText("")
         self._copy_username_btn.setEnabled(False)
         self._copy_password_btn.setEnabled(False)
+
+    # ── 通用操作 ──
 
     def _show_info(self, message: str):
         InfoBar.success(
