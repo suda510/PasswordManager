@@ -4,6 +4,8 @@
 所有密码字段在存储前加密，读取后解密。
 """
 
+import csv
+import io
 import sqlite3
 from typing import Optional
 
@@ -273,6 +275,22 @@ class Database:
         )
         self._conn.commit()
         return cursor.rowcount
+
+    def export_csv(self) -> str:
+        """导出所有条目为 CSV 字符串
+
+        Returns:
+            CSV 格式字符串（UTF-8 BOM，兼容 Excel 中文显示）
+        """
+        entries = self.get_all_entries()
+        output = io.StringIO()
+        # 写 BOM 头，确保 Excel 正确识别 UTF-8
+        output.write("﻿")
+        writer = csv.writer(output)
+        writer.writerow(["title", "username", "password", "url", "notes", "group"])
+        for e in entries:
+            writer.writerow([e.title, e.username, e.password, e.url, e.notes, e.group])
+        return output.getvalue()
 
     def close(self):
         """关闭数据库连接"""

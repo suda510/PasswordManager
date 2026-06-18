@@ -152,7 +152,14 @@ class MainWindow(FluentWindow):
         self._home_page.setObjectName("homePage")
         self.addSubInterface(self._home_page, FIF.HOME, "主页")
 
-        # 底部导航：修改密码
+        # 底部导航
+        self.navigationInterface.addItem(
+            routeKey="export",
+            icon=FIF.SHARE,
+            text="导出数据",
+            onClick=self._on_export,
+            position=NavigationItemPosition.BOTTOM,
+        )
         self.navigationInterface.addItem(
             routeKey="changePassword",
             icon=FIF.FINGERPRINT,
@@ -760,6 +767,104 @@ class MainWindow(FluentWindow):
             self._load_entries()
             self._refresh_groups()
             self._show_info("条目已删除")
+
+    def _on_export(self):
+        """导出数据为 CSV"""
+        from PyQt5.QtWidgets import (
+            QDialog, QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox,
+        )
+        from qfluentwidgets import PasswordLineEdit
+
+        # ── 第一步：验证主密码 ──
+        verify_dialog = QDialog(self)
+        verify_dialog.setWindowTitle("身份验证")
+        verify_dialog.setFixedWidth(380)
+
+        vlayout = QVBoxLayout(verify_dialog)
+        vlayout.setSpacing(14)
+        vlayout.setContentsMargins(28, 24, 28, 24)
+
+        vtitle = QLabel("导出数据需要验证身份")
+        vtitle.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
+        vtitle.setStyleSheet("color: #1a1a1a; background: transparent;")
+        vlayout.addWidget(vtitle)
+
+        vhint = QLabel("请输入主密码以继续")
+        vhint.setFont(QFont("Microsoft YaHei", 11))
+        vhint.setStyleSheet("color: #666; background: transparent;")
+        vlayout.addWidget(vhint)
+
+        pwd_input = PasswordLineEdit()
+        pwd_input.setPlaceholderText("输入主密码")
+        pwd_input.setFixedHeight(INPUT_MIN_HEIGHT)
+        vlayout.addWidget(pwd_input)
+
+        vbtn_row = QHBoxLayout()
+        vbtn_row.setSpacing(8)
+        vbtn_row.addStretch()
+        vcancel = PushButton("取消")
+        vconfirm = PrimaryPushButton("验证")
+        vcancel.setFixedHeight(BTN_MIN_HEIGHT)
+        vconfirm.setFixedHeight(BTN_MIN_HEIGHT)
+        vcancel.clicked.connect(verify_dialog.reject)
+        vconfirm.clicked.connect(verify_dialog.accept)
+        vbtn_row.addWidget(vcancel)
+        vbtn_row.addWidget(vconfirm)
+        vlayout.addLayout(vbtn_row)
+
+        pwd_input.returnPressed.connect(verify_dialog.accept)
+
+        if not verify_dialog.exec_():
+            return
+
+        password = pwd_input.text()
+        stored_hash = self._config.get("master_password_hash")
+        salt = bytes.fromhex(self._config.get("salt"))
+        iterations = int(self._config.get("kdf_iterations"))
+
+        if not verify_master_password(password, salt, stored_hash, iterations):
+            InfoBar.error(title="错误", content="主密码错误",
+                          position=InfoBarPosition.TOP, duration=2000, parent=self)
+            return
+
+        # ── 第二步：安全警告确认 ──
+        reply = QMessageBox.warning(
+            self,
+            "安全警告",
+            "即将导出所有密码为明文 CSV 文件。\n\n"
+            "⚠️ 该文件包含所有账号密码的明文信息，\n"
+            "请妥善保管，使用后建议立即删除。\n\n"
+            "确定要继续吗？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        # ── 第三步：选择保存路径 ──
+        path, _ = QFileDialog.getSaveFileName(
+            self, "导出数据", "passwords.csv",
+            "CSV 文件 (*.csv);;所有文件 (*)",
+        )
+        if not path:
+            return
+
+        # ── 第四步：导出 ──
+        try:
+            csv_data = self._db.export_csv()
+            with open(path, "w", encoding="utf-8-sig") as f:
+                f.write(csv_data)
+            InfoBar.success(
+                title="导出成功",
+                content=f"已导出到 {path}",
+                position=InfoBarPosition.TOP, duration=3000, parent=self,
+            )
+        except Exception as e:
+            InfoBar.error(
+                title="导出失败",
+                content=str(e),
+                position=InfoBarPosition.TOP, duration=3000, parent=self,
+            )
 
     def _on_change_password(self):
         """修改主密码"""
