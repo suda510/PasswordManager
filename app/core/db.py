@@ -287,7 +287,7 @@ class Database:
         # 写 BOM 头，确保 Excel 正确识别 UTF-8
         output.write("﻿")
         writer = csv.writer(output)
-        writer.writerow(["title", "username", "password", "url", "notes", "group"])
+        writer.writerow(["网站/软件名", "用户名", "密码", "网址", "备注", "分组"])
         for e in entries:
             writer.writerow([e.title, e.username, e.password, e.url, e.notes, e.group])
         return output.getvalue()

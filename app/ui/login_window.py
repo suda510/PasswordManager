@@ -68,7 +68,7 @@ class RecoveryKeyDialog(QDialog):
 
         # 警告图标
         warning = QLabel("⚠️")
-        warning.setFont(QFont("Segoe UI", 32))
+        warning.setFont(QFont("Microsoft YaHei", 32))
         warning.setAlignment(Qt.AlignCenter)
         layout.addWidget(warning)
 
@@ -138,7 +138,7 @@ class ForgotPasswordDialog(QDialog):
 
         # 标题
         title = QLabel("忘记主密码？")
-        title.setFont(QFont("Segoe UI", 18, QFont.DemiBold))
+        title.setFont(QFont("Microsoft YaHei", 16, QFont.DemiBold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("color: #1a1a1a; background: transparent;")
         layout.addWidget(title)
@@ -331,7 +331,7 @@ class LoginWindow(QWidget):
 
         # 标题（渐变效果）
         title = QLabel("密码管理器")
-        title.setFont(QFont("黑体", 24, QFont.Bold))
+        title.setFont(QFont("Microsoft YaHei", 24, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("""
             QLabel {

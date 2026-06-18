@@ -47,7 +47,7 @@ class AddEditDialog(QDialog):
 
         # 标题
         title_label = QLabel(title)
-        title_label.setFont(QFont("Segoe UI", 18, QFont.DemiBold))
+        title_label.setFont(QFont("Microsoft YaHei", 16, QFont.DemiBold))
         title_label.setStyleSheet("color: #1a1a1a; background: transparent;")
         layout.addWidget(title_label)
         layout.addSpacing(8)
