@@ -3,6 +3,7 @@
 import sys
 
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QFont
 
 
 def _set_windows_appusermodelid():
@@ -20,6 +21,11 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("密码管理器")
+
+    # 全局字体
+    font = QFont("Microsoft YaHei", 11)
+    font.setStyleStrategy(QFont.PreferAntialias)
+    app.setFont(font)
 
     from app.ui.icon_gen import create_app_icon
     app.setWindowIcon(create_app_icon())

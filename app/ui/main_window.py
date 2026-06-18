@@ -155,16 +155,23 @@ class MainWindow(FluentWindow):
         # 底部导航
         self.navigationInterface.addItem(
             routeKey="export",
-            icon=FIF.SHARE,
+            icon=FIF.SAVE,
             text="导出数据",
             onClick=self._on_export,
             position=NavigationItemPosition.BOTTOM,
         )
         self.navigationInterface.addItem(
             routeKey="changePassword",
-            icon=FIF.FINGERPRINT,
+            icon=FIF.SETTING,
             text="修改主密码",
             onClick=self._on_change_password,
+            position=NavigationItemPosition.BOTTOM,
+        )
+        self.navigationInterface.addItem(
+            routeKey="about",
+            icon=FIF.INFO,
+            text="关于",
+            onClick=self._on_about,
             position=NavigationItemPosition.BOTTOM,
         )
 
@@ -880,7 +887,7 @@ class MainWindow(FluentWindow):
         layout.setContentsMargins(32, 28, 32, 28)
 
         title = QLabel("修改主密码")
-        title.setFont(QFont("Segoe UI", 18, QFont.DemiBold))
+        title.setFont(QFont("Microsoft YaHei", 16, QFont.DemiBold))
         title.setStyleSheet("color: #1a1a1a; background: transparent;")
         layout.addWidget(title)
 
@@ -963,4 +970,60 @@ class MainWindow(FluentWindow):
             dialog.accept()
 
         save_btn.clicked.connect(on_save)
+        dialog.exec_()
+
+    def _on_about(self):
+        """关于对话框"""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout
+        from PyQt5.QtCore import QUrl
+        from PyQt5.QtGui import QDesktopServices
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("关于")
+        dialog.setFixedSize(360, 300)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(12)
+        layout.setContentsMargins(28, 24, 28, 24)
+
+        # 图标
+        icon_label = QLabel("🔐")
+        icon_label.setFont(QFont("Microsoft YaHei", 32))
+        icon_label.setAlignment(Qt.AlignCenter)
+        icon_label.setStyleSheet("background: transparent; border: none;")
+        layout.addWidget(icon_label)
+
+        # 应用名
+        name_label = QLabel("密码管理器")
+        name_label.setFont(QFont("Microsoft YaHei", 16, QFont.DemiBold))
+        name_label.setAlignment(Qt.AlignCenter)
+        name_label.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
+        layout.addWidget(name_label)
+
+        # 版本
+        ver_label = QLabel("v1.0.0")
+        ver_label.setFont(QFont("Microsoft YaHei", 11))
+        ver_label.setAlignment(Qt.AlignCenter)
+        ver_label.setStyleSheet("color: #999; background: transparent; border: none;")
+        layout.addWidget(ver_label)
+
+        # 描述
+        desc_label = QLabel("本地优先、离线可用的桌面密码管理器\nAES-256 加密 · 零云端依赖")
+        desc_label.setFont(QFont("Microsoft YaHei", 11))
+        desc_label.setAlignment(Qt.AlignCenter)
+        desc_label.setStyleSheet("color: #666; background: transparent; border: none;")
+        layout.addWidget(desc_label)
+
+        layout.addSpacing(8)
+
+        # GitHub 链接
+        link_label = QLabel('<a href="https://github.com/suda510/PasswordManager" style="color:#0078d4;text-decoration:none;">GitHub 仓库</a>')
+        link_label.setFont(QFont("Microsoft YaHei", 11))
+        link_label.setAlignment(Qt.AlignCenter)
+        link_label.setOpenExternalLinks(True)
+        link_label.setStyleSheet("background: transparent; border: none;")
+        layout.addWidget(link_label)
+
+        layout.addStretch()
+
         dialog.exec_()
