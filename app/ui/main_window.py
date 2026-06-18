@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QGridLayout,
     QLabel,
     QListWidgetItem,
     QFrame,
@@ -231,18 +232,18 @@ class MainWindow(FluentWindow):
         header = QWidget()
         header.setStyleSheet("background: transparent;")
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(28, 24, 28, 20)
+        header_layout.setContentsMargins(32, 28, 32, 24)
         header_layout.setSpacing(16)
 
         self._detail_avatar = QLabel("?")
-        self._detail_avatar.setFixedSize(52, 52)
+        self._detail_avatar.setFixedSize(48, 48)
         self._detail_avatar.setAlignment(Qt.AlignCenter)
-        self._detail_avatar.setFont(QFont("Microsoft YaHei", 20, QFont.Bold))
+        self._detail_avatar.setFont(QFont("Microsoft YaHei", 18, QFont.Bold))
         self._detail_avatar.setStyleSheet("""
             QLabel {
                 background: #e0e0e0;
                 color: white;
-                border-radius: 26px;
+                border-radius: 24px;
                 border: none;
             }
         """)
@@ -251,7 +252,7 @@ class MainWindow(FluentWindow):
         title_col = QVBoxLayout()
         title_col.setSpacing(4)
         self._detail_title = QLabel("选择一个条目查看详情")
-        self._detail_title.setFont(QFont("Microsoft YaHei", 18, QFont.DemiBold))
+        self._detail_title.setFont(QFont("Microsoft YaHei", 16, QFont.DemiBold))
         self._detail_title.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
         title_col.addWidget(self._detail_title)
 
@@ -264,7 +265,6 @@ class MainWindow(FluentWindow):
                 border: none;
                 border-radius: 4px;
                 padding: 2px 8px;
-                font-size: 11px;
             }
         """)
         self._detail_group_badge.hide()
@@ -275,36 +275,93 @@ class MainWindow(FluentWindow):
         # ── 分隔线 ──
         sep = QWidget()
         sep.setFixedHeight(1)
-        sep.setStyleSheet("background: #f0f0f0;")
+        sep.setStyleSheet("background: #eee;")
         right_layout.addWidget(sep)
 
-        # ── 字段详情区 ──
+        # ── 字段详情区（QGridLayout 严格对齐） ──
         fields_widget = QWidget()
         fields_widget.setStyleSheet("background: transparent;")
-        self._fields_layout = QVBoxLayout(fields_widget)
-        self._fields_layout.setContentsMargins(28, 20, 28, 20)
-        self._fields_layout.setSpacing(0)
+        grid = QGridLayout(fields_widget)
+        grid.setContentsMargins(32, 28, 32, 28)
+        grid.setColumnMinimumWidth(0, 72)   # 标签列
+        grid.setColumnMinimumWidth(2, 36)   # 复制按钮列
+        grid.setColumnStretch(1, 1)          # 值列自适应
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(0)
 
-        self._detail_rows: dict[str, tuple[QLabel, QLabel, QWidget]] = {}
+        ROW_H = 52
+
         fields = [
             ("用户名", "username", True),
             ("密  码", "password", True),
             ("网  址", "url", False),
             ("备  注", "notes", False),
         ]
-        for i, (label_text, field_name, copyable) in enumerate(fields):
-            row = self._create_detail_row(label_text, field_name, copyable)
-            self._fields_layout.addWidget(row)
-            if i < len(fields) - 1:
-                # 行间分隔
+
+        for row_idx, (label_text, field_name, copyable) in enumerate(fields):
+            # 标签
+            label = QLabel(label_text)
+            label.setFixedHeight(ROW_H)
+            label.setFont(QFont("Microsoft YaHei", 11))
+            label.setStyleSheet("color: #999; background: transparent; border: none;")
+            label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            grid.addWidget(label, row_idx, 0)
+
+            # 值
+            value = QLabel("")
+            value.setFixedHeight(ROW_H)
+            value.setFont(QFont("Microsoft YaHei", 12))
+            value.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
+            value.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            grid.addWidget(value, row_idx, 1)
+
+            # 复制按钮
+            if copyable:
+                copy_btn = ToolButton()
+                copy_btn.setFixedSize(28, 28)
+                copy_btn.setIcon(FIF.COPY.icon())
+                copy_btn.setToolTip("复制")
+                copy_btn.setCursor(Qt.PointingHandCursor)
+                copy_btn.setStyleSheet("""
+                    QToolButton {
+                        background: transparent;
+                        border: none;
+                        border-radius: 4px;
+                    }
+                    QToolButton:hover {
+                        background: #f0f0f0;
+                    }
+                """)
+                if field_name == "username":
+                    copy_btn.clicked.connect(self._copy_username)
+                elif field_name == "password":
+                    copy_btn.clicked.connect(self._copy_password)
+                # 用一个容器把按钮垂直居中
+                btn_wrap = QWidget()
+                btn_wrap.setStyleSheet("background: transparent;")
+                btn_wrap.setFixedSize(36, ROW_H)
+                btn_layout = QHBoxLayout(btn_wrap)
+                btn_layout.setContentsMargins(0, 0, 0, 0)
+                btn_layout.addWidget(copy_btn, alignment=Qt.AlignVCenter)
+                grid.addWidget(btn_wrap, row_idx, 2)
+                setattr(self, f"_{field_name}_copy_btn", copy_btn)
+            else:
+                # 空占位，保持列对齐
+                spacer = QWidget()
+                spacer.setFixedSize(36, ROW_H)
+                spacer.setStyleSheet("background: transparent;")
+                grid.addWidget(spacer, row_idx, 2)
+
+            setattr(self, f"_{field_name}_value", value)
+
+            # 行间分隔线（跨所有列）
+            if row_idx < len(fields) - 1:
                 line = QWidget()
                 line.setFixedHeight(1)
-                line.setStyleSheet("background: #f5f5f5;")
-                self._fields_layout.addWidget(line)
+                line.setStyleSheet("background: #eee;")
+                grid.addWidget(line, row_idx + 1, 0, 1, 3)
 
-        self._fields_layout.addStretch()
         right_layout.addWidget(fields_widget, stretch=1)
-
         layout.addWidget(right_panel, stretch=1)
 
         return page
@@ -564,58 +621,6 @@ class MainWindow(FluentWindow):
             self._show_detail(self._current_entry)
 
     # ── 详情面板 ──
-
-    def _create_detail_row(self, label_text: str, field_name: str, copyable: bool) -> QWidget:
-        """创建一行详情字段：标签 + 值 + 可选复制按钮"""
-        row = QWidget()
-        row.setStyleSheet("background: transparent;")
-        row.setMinimumHeight(52)
-
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 8, 0, 8)
-        layout.setSpacing(12)
-
-        # 标签
-        label = QLabel(label_text)
-        label.setFixedWidth(56)
-        label.setFont(QFont("Microsoft YaHei", 11))
-        label.setStyleSheet("color: #999; background: transparent; border: none;")
-        label.setAlignment(Qt.AlignRight | Qt.AlignTop)
-        layout.addWidget(label)
-
-        # 值
-        value = QLabel("")
-        value.setFont(QFont("Microsoft YaHei", 12))
-        value.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
-        value.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        value.setWordWrap(True)
-        layout.addWidget(value, stretch=1)
-
-        # 复制按钮
-        if copyable:
-            copy_btn = ToolButton()
-            copy_btn.setFixedSize(32, 32)
-            copy_btn.setIcon(FIF.COPY.icon())
-            copy_btn.setToolTip("复制")
-            copy_btn.setStyleSheet("""
-                QToolButton {
-                    background: transparent;
-                    border: none;
-                    border-radius: 6px;
-                }
-                QToolButton:hover {
-                    background: rgba(0, 0, 0, 0.06);
-                }
-            """)
-            if field_name == "username":
-                copy_btn.clicked.connect(self._copy_username)
-            elif field_name == "password":
-                copy_btn.clicked.connect(self._copy_password)
-            layout.addWidget(copy_btn, alignment=Qt.AlignTop)
-            setattr(self, f"_{field_name}_copy_btn", copy_btn)
-
-        setattr(self, f"_{field_name}_value", value)
-        return row
 
     def _show_detail(self, entry: Entry):
         # 头像
