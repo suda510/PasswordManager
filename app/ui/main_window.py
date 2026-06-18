@@ -84,7 +84,7 @@ class EntryCardWidget(QFrame):
         self._setup_ui()
 
     def _setup_ui(self):
-        self.setFixedHeight(56)
+        self.setFixedHeight(60)
         self.setCursor(Qt.PointingHandCursor)
         self.setStyleSheet("""
             QFrame {
@@ -98,21 +98,20 @@ class EntryCardWidget(QFrame):
         """)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 6, 10, 6)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(14)
 
         # ── 首字母头像 ──
         avatar = QLabel(_first_char(self._entry.title))
-        avatar.setFixedSize(36, 36)
+        avatar.setFixedSize(38, 38)
         avatar.setAlignment(Qt.AlignCenter)
         color = _avatar_color(self._entry.title)
+        avatar.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
         avatar.setStyleSheet(f"""
             QLabel {{
                 background: {color};
                 color: white;
-                font-size: 15px;
-                font-weight: 600;
-                border-radius: 18px;
+                border-radius: 19px;
                 border: none;
             }}
         """)
@@ -121,29 +120,16 @@ class EntryCardWidget(QFrame):
         # ── 文字区域 ──
         text_layout = QVBoxLayout()
         text_layout.setContentsMargins(0, 0, 0, 0)
-        text_layout.setSpacing(2)
+        text_layout.setSpacing(3)
 
         title_label = QLabel(self._entry.title)
-        title_label.setStyleSheet("""
-            QLabel {
-                font-size: 13px;
-                font-weight: 600;
-                color: #1a1a1a;
-                background: transparent;
-                border: none;
-            }
-        """)
+        title_label.setFont(QFont("Microsoft YaHei", 12, QFont.DemiBold))
+        title_label.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
         text_layout.addWidget(title_label)
 
         user_label = QLabel(self._entry.username or "（无用户名）")
-        user_label.setStyleSheet("""
-            QLabel {
-                font-size: 12px;
-                color: #888;
-                background: transparent;
-                border: none;
-            }
-        """)
+        user_label.setFont(QFont("Microsoft YaHei", 10))
+        user_label.setStyleSheet("color: #999; background: transparent; border: none;")
         text_layout.addWidget(user_label)
 
         layout.addLayout(text_layout, stretch=1)
@@ -195,12 +181,20 @@ class MainWindow(FluentWindow):
         self._search_input.textChanged.connect(self._on_search)
         left_layout.addWidget(self._search_input)
 
-        # 分组下拉框
+        # 分组下拉框 + 管理按钮
+        group_row = QHBoxLayout()
+        group_row.setSpacing(8)
         self._group_combo = ComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
         self._group_combo.setPlaceholderText("全部分组")
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
-        left_layout.addWidget(self._group_combo)
+        group_row.addWidget(self._group_combo, stretch=1)
+
+        group_manage_btn = PushButton("管理分组")
+        group_manage_btn.setFixedHeight(INPUT_MIN_HEIGHT)
+        group_manage_btn.clicked.connect(self._on_manage_groups)
+        group_row.addWidget(group_manage_btn)
+        left_layout.addLayout(group_row)
 
         self._current_group = ""
         self._refresh_groups()
@@ -285,6 +279,13 @@ class MainWindow(FluentWindow):
 
     # ── 分组管理 ──
 
+    def _get_all_groups(self) -> list[str]:
+        """获取所有分组（条目中使用的 + 自定义分组），去重排序"""
+        db_groups = set(self._db.get_groups())
+        custom_groups = set(self._config.get_custom_groups())
+        all_groups = sorted(db_groups | custom_groups, key=str.casefold)
+        return all_groups
+
     def _refresh_groups(self):
         """刷新分组下拉框"""
         self._group_combo.blockSignals(True)
@@ -293,8 +294,7 @@ class MainWindow(FluentWindow):
         self._group_combo.clear()
         self._group_combo.addItem("全部分组", "")
 
-        groups = self._db.get_groups()
-        for group in groups:
+        for group in self._get_all_groups():
             self._group_combo.addItem(group, group)
 
         # 恢复之前选中的分组
@@ -309,6 +309,181 @@ class MainWindow(FluentWindow):
         """分组下拉框切换"""
         self._current_group = self._group_combo.itemData(index) or ""
         self._load_entries()
+
+    def _on_manage_groups(self):
+        """打开分组管理对话框"""
+        from PyQt5.QtWidgets import (
+            QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
+        )
+        from qfluentwidgets import LineEdit
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("管理分组")
+        dialog.setFixedSize(360, 420)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(12)
+        layout.setContentsMargins(24, 20, 24, 20)
+
+        title = QLabel("管理分组")
+        title.setFont(QFont("Microsoft YaHei", 16, QFont.DemiBold))
+        title.setStyleSheet("color: #1a1a1a; background: transparent;")
+        layout.addWidget(title)
+
+        # 新增分组输入
+        add_row = QHBoxLayout()
+        add_row.setSpacing(8)
+        new_group_input = LineEdit()
+        new_group_input.setPlaceholderText("输入新分组名称")
+        new_group_input.setFixedHeight(INPUT_MIN_HEIGHT)
+        add_row.addWidget(new_group_input, stretch=1)
+
+        add_btn = PrimaryPushButton("添加")
+        add_btn.setFixedHeight(INPUT_MIN_HEIGHT)
+        add_row.addWidget(add_btn)
+        layout.addLayout(add_row)
+
+        # 分组列表
+        group_list = QListWidget()
+        group_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                background: white;
+            }
+            QListWidget::item {
+                padding: 6px 12px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            QListWidget::item:selected {
+                background: #e8f0fe;
+                color: #0078d4;
+            }
+        """)
+        layout.addWidget(group_list, stretch=1)
+
+        # 底部按钮
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(8)
+
+        rename_btn = PushButton("重命名")
+        rename_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        rename_btn.setEnabled(False)
+
+        delete_btn = PushButton("删除分组")
+        delete_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        delete_btn.setEnabled(False)
+        delete_btn.setStyleSheet("color: #e81123;")
+
+        btn_row.addStretch()
+        btn_row.addWidget(rename_btn)
+        btn_row.addWidget(delete_btn)
+        layout.addLayout(btn_row)
+
+        # ── 刷新列表 ──
+        def refresh_list():
+            group_list.clear()
+            groups = self._get_all_groups()
+            for g in groups:
+                count = len(self._db.get_entries_by_group(g))
+                item = QListWidgetItem(f"{g}  ({count} 个条目)")
+                item.setData(Qt.UserRole, g)
+                group_list.addItem(item)
+
+        refresh_list()
+
+        # ── 事件绑定 ──
+        def on_selection_changed():
+            has_sel = group_list.currentItem() is not None
+            rename_btn.setEnabled(has_sel)
+            delete_btn.setEnabled(has_sel)
+
+        group_list.currentItemChanged.connect(lambda: on_selection_changed())
+
+        def on_add():
+            name = new_group_input.text().strip()
+            if not name:
+                return
+            all_groups = self._get_all_groups()
+            if name in all_groups:
+                InfoBar.warning(title="提示", content="该分组已存在",
+                                position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                return
+            self._config.add_custom_group(name)
+            new_group_input.clear()
+            self._refresh_groups()
+            refresh_list()
+            InfoBar.success(title="成功", content=f'分组 "{name}" 已创建',
+                            position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+
+        add_btn.clicked.connect(on_add)
+        new_group_input.returnPressed.connect(on_add)
+
+        def on_rename():
+            item = group_list.currentItem()
+            if not item:
+                return
+            old_name = item.data(Qt.UserRole)
+            new_name_line = LineEdit()
+            new_name_line.setText(old_name)
+            new_name_line.setFixedHeight(INPUT_MIN_HEIGHT)
+
+            rename_dialog = QDialog(dialog)
+            rename_dialog.setWindowTitle("重命名分组")
+            rename_dialog.setFixedWidth(320)
+            rl = QVBoxLayout(rename_dialog)
+            rl.setSpacing(12)
+            rl.setContentsMargins(20, 16, 20, 16)
+
+            rl.addWidget(QLabel(f'重命名分组 "{old_name}"'))
+            rl.addWidget(new_name_line)
+
+            btns = QHBoxLayout()
+            btns.addStretch()
+            cancel = PushButton("取消")
+            confirm = PrimaryPushButton("确认")
+            cancel.clicked.connect(rename_dialog.reject)
+            confirm.clicked.connect(rename_dialog.accept)
+            btns.addWidget(cancel)
+            btns.addWidget(confirm)
+            rl.addLayout(btns)
+
+            if rename_dialog.exec_():
+                new_name = new_name_line.text().strip()
+                if new_name and new_name != old_name:
+                    self._db.rename_group(old_name, new_name)
+                    self._config.rename_custom_group(old_name, new_name)
+                    self._refresh_groups()
+                    self._load_entries()
+                    refresh_list()
+                    InfoBar.success(title="成功", content=f'已重命名为 "{new_name}"',
+                                    position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+
+        rename_btn.clicked.connect(on_rename)
+
+        def on_delete():
+            item = group_list.currentItem()
+            if not item:
+                return
+            group_name = item.data(Qt.UserRole)
+            from PyQt5.QtWidgets import QMessageBox
+            reply = QMessageBox.warning(
+                dialog, "确认删除",
+                f'删除分组 "{group_name}"？\n该分组下的条目将变为"未分组"。',
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if reply == QMessageBox.Yes:
+                self._db.delete_group(group_name)
+                self._config.delete_custom_group(group_name)
+                self._refresh_groups()
+                self._load_entries()
+                refresh_list()
+                InfoBar.success(title="成功", content=f'分组 "{group_name}" 已删除',
+                                position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+
+        delete_btn.clicked.connect(on_delete)
+
+        dialog.exec_()
 
     # ── 条目列表 ──
 
@@ -405,7 +580,7 @@ class MainWindow(FluentWindow):
             self._show_info("密码已复制到剪贴板")
 
     def _on_add(self):
-        dialog = AddEditDialog(self, groups=self._db.get_groups())
+        dialog = AddEditDialog(self, groups=self._get_all_groups())
         if dialog.exec_():
             self._db.add_entry(dialog.get_entry())
             self._load_entries()
@@ -416,7 +591,7 @@ class MainWindow(FluentWindow):
         if not self._current_entry:
             InfoBar.info(title="提示", content="请先选择一个条目", position=InfoBarPosition.TOP_RIGHT, duration=2000, parent=self)
             return
-        dialog = AddEditDialog(self, self._current_entry, groups=self._db.get_groups())
+        dialog = AddEditDialog(self, self._current_entry, groups=self._get_all_groups())
         if dialog.exec_():
             self._db.update_entry(dialog.get_entry())
             self._load_entries()

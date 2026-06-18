@@ -241,6 +241,39 @@ class Database:
         ).fetchall()
         return [self._decrypt_entry_row(row) for row in rows]
 
+    def rename_group(self, old_name: str, new_name: str) -> int:
+        """重命名分组
+
+        Args:
+            old_name: 旧分组名
+            new_name: 新分组名
+
+        Returns:
+            受影响的条目数
+        """
+        cursor = self._conn.execute(
+            'UPDATE entries SET "group" = ? WHERE "group" = ?',
+            (new_name, old_name),
+        )
+        self._conn.commit()
+        return cursor.rowcount
+
+    def delete_group(self, group_name: str) -> int:
+        """删除分组（将该分组下所有条目的分组清空）
+
+        Args:
+            group_name: 分组名称
+
+        Returns:
+            受影响的条目数
+        """
+        cursor = self._conn.execute(
+            'UPDATE entries SET "group" = \'\' WHERE "group" = ?',
+            (group_name,),
+        )
+        self._conn.commit()
+        return cursor.rowcount
+
     def close(self):
         """关闭数据库连接"""
         if self._conn:
