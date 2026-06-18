@@ -231,39 +231,39 @@ class MainWindow(FluentWindow):
         header = QWidget()
         header.setStyleSheet("background: transparent;")
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(32, 28, 32, 24)
-        header_layout.setSpacing(16)
+        header_layout.setContentsMargins(28, 24, 28, 20)
+        header_layout.setSpacing(14)
 
         self._detail_avatar = QLabel("?")
-        self._detail_avatar.setFixedSize(48, 48)
+        self._detail_avatar.setFixedSize(44, 44)
         self._detail_avatar.setAlignment(Qt.AlignCenter)
-        self._detail_avatar.setFont(QFont("Microsoft YaHei", 18, QFont.Bold))
+        self._detail_avatar.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
         self._detail_avatar.setStyleSheet("""
             QLabel {
                 background: #e0e0e0;
                 color: white;
-                border-radius: 24px;
+                border-radius: 22px;
                 border: none;
             }
         """)
         header_layout.addWidget(self._detail_avatar)
 
         title_col = QVBoxLayout()
-        title_col.setSpacing(4)
+        title_col.setSpacing(3)
         self._detail_title = QLabel("选择一个条目查看详情")
-        self._detail_title.setFont(QFont("Microsoft YaHei", 16, QFont.DemiBold))
+        self._detail_title.setFont(QFont("Microsoft YaHei", 15, QFont.DemiBold))
         self._detail_title.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
         title_col.addWidget(self._detail_title)
 
         self._detail_group_badge = QLabel("")
-        self._detail_group_badge.setFont(QFont("Microsoft YaHei", 10))
+        self._detail_group_badge.setFont(QFont("Microsoft YaHei", 9))
         self._detail_group_badge.setStyleSheet("""
             QLabel {
                 color: #0078d4;
                 background: #e8f0fe;
                 border: none;
-                border-radius: 4px;
-                padding: 2px 8px;
+                border-radius: 3px;
+                padding: 1px 6px;
             }
         """)
         self._detail_group_badge.hide()
@@ -277,71 +277,32 @@ class MainWindow(FluentWindow):
         sep.setStyleSheet("background: #eee;")
         right_layout.addWidget(sep)
 
-        # ── 字段详情区（紧凑纵向堆叠） ──
+        # ── 字段详情区 ──
         fields_widget = QWidget()
         fields_widget.setStyleSheet("background: transparent;")
-        fields_layout = QVBoxLayout(fields_widget)
-        fields_layout.setContentsMargins(32, 24, 32, 24)
-        fields_layout.setSpacing(18)
+        self._fields_layout = QVBoxLayout(fields_widget)
+        self._fields_layout.setContentsMargins(28, 20, 28, 20)
+        self._fields_layout.setSpacing(16)
 
-        fields = [
-            ("用户名", "username", True),
-            ("密  码", "password", True),
-            ("网  址", "url", False),
-            ("备  注", "notes", False),
-        ]
+        # 用户名（始终显示）
+        self._username_block = self._create_field_block("用户名", "username", copyable=True)
+        self._fields_layout.addWidget(self._username_block)
 
-        for label_text, field_name, copyable in fields:
-            # 整个字段块
-            block = QVBoxLayout()
-            block.setSpacing(4)
+        # 密码（始终显示）
+        self._password_block = self._create_field_block("密  码", "password", copyable=True, has_toggle=True)
+        self._fields_layout.addWidget(self._password_block)
 
-            # 标签行
-            label = QLabel(label_text)
-            label.setFont(QFont("Microsoft YaHei", 10))
-            label.setStyleSheet("color: #999; background: transparent; border: none;")
-            block.addWidget(label)
+        # 网址（有内容才显示）
+        self._url_block = self._create_field_block("网  址", "url")
+        self._fields_layout.addWidget(self._url_block)
+        self._url_block.hide()
 
-            # 值行（值 + 复制按钮同行）
-            val_row = QHBoxLayout()
-            val_row.setContentsMargins(0, 0, 0, 0)
-            val_row.setSpacing(8)
+        # 备注（有内容才显示）
+        self._notes_block = self._create_field_block("备  注", "notes")
+        self._fields_layout.addWidget(self._notes_block)
+        self._notes_block.hide()
 
-            value = QLabel("")
-            value.setFont(QFont("Microsoft YaHei", 13))
-            value.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
-            value.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            val_row.addWidget(value, stretch=1)
-
-            if copyable:
-                copy_btn = ToolButton()
-                copy_btn.setFixedSize(26, 26)
-                copy_btn.setIcon(FIF.COPY.icon())
-                copy_btn.setToolTip("复制")
-                copy_btn.setCursor(Qt.PointingHandCursor)
-                copy_btn.setStyleSheet("""
-                    QToolButton {
-                        background: transparent;
-                        border: none;
-                        border-radius: 4px;
-                    }
-                    QToolButton:hover {
-                        background: #f0f0f0;
-                    }
-                """)
-                if field_name == "username":
-                    copy_btn.clicked.connect(self._copy_username)
-                elif field_name == "password":
-                    copy_btn.clicked.connect(self._copy_password)
-                val_row.addWidget(copy_btn, alignment=Qt.AlignVCenter)
-                setattr(self, f"_{field_name}_copy_btn", copy_btn)
-
-            block.addLayout(val_row)
-            setattr(self, f"_{field_name}_value", value)
-
-            fields_layout.addLayout(block)
-
-        fields_layout.addStretch()
+        self._fields_layout.addStretch()
         right_layout.addWidget(fields_widget, stretch=1)
         layout.addWidget(right_panel, stretch=1)
 
@@ -603,6 +564,97 @@ class MainWindow(FluentWindow):
 
     # ── 详情面板 ──
 
+    def _create_field_block(self, label_text: str, field_name: str,
+                            copyable: bool = False, has_toggle: bool = False) -> QWidget:
+        """创建一个字段块：标签 + 值行（值 + 可选按钮）"""
+        block = QWidget()
+        block.setStyleSheet("background: transparent;")
+        block_layout = QVBoxLayout(block)
+        block_layout.setContentsMargins(0, 0, 0, 0)
+        block_layout.setSpacing(4)
+
+        # 标签
+        label = QLabel(label_text)
+        label.setFont(QFont("Microsoft YaHei", 10))
+        label.setStyleSheet("color: #999; background: transparent; border: none;")
+        block_layout.addWidget(label)
+
+        # 值行
+        val_row = QHBoxLayout()
+        val_row.setContentsMargins(0, 0, 0, 0)
+        val_row.setSpacing(6)
+
+        value = QLabel("")
+        value.setFont(QFont("Microsoft YaHei", 13))
+        value.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
+        value.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        val_row.addWidget(value, stretch=1)
+
+        setattr(self, f"_{field_name}_value", value)
+
+        # 密码显隐切换
+        if has_toggle:
+            self._password_visible = False
+            toggle_btn = ToolButton()
+            toggle_btn.setFixedSize(26, 26)
+            toggle_btn.setIcon(FIF.HIDE.icon())
+            toggle_btn.setToolTip("显示密码")
+            toggle_btn.setCursor(Qt.PointingHandCursor)
+            toggle_btn.setStyleSheet("""
+                QToolButton {
+                    background: transparent;
+                    border: none;
+                    border-radius: 4px;
+                }
+                QToolButton:hover {
+                    background: #f0f0f0;
+                }
+            """)
+            toggle_btn.clicked.connect(lambda: self._toggle_password(toggle_btn))
+            val_row.addWidget(toggle_btn, alignment=Qt.AlignVCenter)
+            self._password_toggle_btn = toggle_btn
+
+        # 复制按钮
+        if copyable:
+            copy_btn = ToolButton()
+            copy_btn.setFixedSize(26, 26)
+            copy_btn.setIcon(FIF.COPY.icon())
+            copy_btn.setToolTip("复制")
+            copy_btn.setCursor(Qt.PointingHandCursor)
+            copy_btn.setStyleSheet("""
+                QToolButton {
+                    background: transparent;
+                    border: none;
+                    border-radius: 4px;
+                }
+                QToolButton:hover {
+                    background: #f0f0f0;
+                }
+            """)
+            if field_name == "username":
+                copy_btn.clicked.connect(self._copy_username)
+            elif field_name == "password":
+                copy_btn.clicked.connect(self._copy_password)
+            val_row.addWidget(copy_btn, alignment=Qt.AlignVCenter)
+            setattr(self, f"_{field_name}_copy_btn", copy_btn)
+
+        block_layout.addLayout(val_row)
+        return block
+
+    def _toggle_password(self, btn: ToolButton):
+        """切换密码显隐"""
+        self._password_visible = not self._password_visible
+        if self._password_visible:
+            btn.setIcon(FIF.VIEW.icon())
+            btn.setToolTip("隐藏密码")
+            if self._current_entry:
+                self._password_value.setText(self._current_entry.password)
+        else:
+            btn.setIcon(FIF.HIDE.icon())
+            btn.setToolTip("显示密码")
+            if self._current_entry:
+                self._password_value.setText("•" * len(self._current_entry.password))
+
     def _show_detail(self, entry: Entry):
         # 头像
         ch = _first_char(entry.title)
@@ -612,7 +664,7 @@ class MainWindow(FluentWindow):
             QLabel {{
                 background: {color};
                 color: white;
-                border-radius: 26px;
+                border-radius: 22px;
                 border: none;
             }}
         """)
@@ -627,20 +679,33 @@ class MainWindow(FluentWindow):
         else:
             self._detail_group_badge.hide()
 
-        # 字段值
+        # 用户名
         self._username_value.setText(entry.username or "（无）")
+
+        # 密码（重置为隐藏状态）
+        self._password_visible = False
+        self._password_toggle_btn.setIcon(FIF.HIDE.icon())
         self._password_value.setText("•" * len(entry.password) if entry.password else "（无）")
-        self._url_value.setText(
-            f'<a href="{entry.url}" style="color:#0078d4;text-decoration:none;">{entry.url}</a>'
-            if entry.url else "（无）"
-        )
-        self._notes_value.setText(entry.notes or "（无）")
+
+        # 网址（有内容才显示）
+        if entry.url:
+            self._url_value.setText(
+                f'<a href="{entry.url}" style="color:#0078d4;text-decoration:none;">{entry.url}</a>'
+            )
+            self._url_block.show()
+        else:
+            self._url_block.hide()
+
+        # 备注（有内容才显示）
+        if entry.notes:
+            self._notes_value.setText(entry.notes)
+            self._notes_block.show()
+        else:
+            self._notes_block.hide()
 
         # 启用复制按钮
-        if hasattr(self, "_username_copy_btn"):
-            self._username_copy_btn.setEnabled(True)
-        if hasattr(self, "_password_copy_btn"):
-            self._password_copy_btn.setEnabled(True)
+        self._username_copy_btn.setEnabled(True)
+        self._password_copy_btn.setEnabled(True)
 
     def _clear_detail(self):
         self._current_entry = None
@@ -649,7 +714,7 @@ class MainWindow(FluentWindow):
             QLabel {
                 background: #e0e0e0;
                 color: white;
-                border-radius: 26px;
+                border-radius: 22px;
                 border: none;
             }
         """)
@@ -659,10 +724,10 @@ class MainWindow(FluentWindow):
         self._password_value.setText("")
         self._url_value.setText("")
         self._notes_value.setText("")
-        if hasattr(self, "_username_copy_btn"):
-            self._username_copy_btn.setEnabled(False)
-        if hasattr(self, "_password_copy_btn"):
-            self._password_copy_btn.setEnabled(False)
+        self._url_block.hide()
+        self._notes_block.hide()
+        self._username_copy_btn.setEnabled(False)
+        self._password_copy_btn.setEnabled(False)
 
     # ── 通用操作 ──
 
