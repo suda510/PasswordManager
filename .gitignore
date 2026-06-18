@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+*.spec.bak
+
+# PyInstaller
+build/
+dist/
+
+# Claude Code
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 环境变量
+.env
