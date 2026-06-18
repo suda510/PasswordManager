@@ -254,20 +254,6 @@ class MainWindow(FluentWindow):
         self._detail_title.setFont(QFont("Microsoft YaHei", 15, QFont.DemiBold))
         self._detail_title.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
         title_col.addWidget(self._detail_title)
-
-        self._detail_group_badge = QLabel("")
-        self._detail_group_badge.setFont(QFont("Microsoft YaHei", 9))
-        self._detail_group_badge.setStyleSheet("""
-            QLabel {
-                color: #0078d4;
-                background: #e8f0fe;
-                border: none;
-                border-radius: 3px;
-                padding: 1px 6px;
-            }
-        """)
-        self._detail_group_badge.hide()
-        title_col.addWidget(self._detail_group_badge)
         header_layout.addLayout(title_col, stretch=1)
         right_layout.addWidget(header)
 
@@ -672,13 +658,6 @@ class MainWindow(FluentWindow):
         # 标题
         self._detail_title.setText(entry.title)
 
-        # 分组标签
-        if entry.group:
-            self._detail_group_badge.setText(entry.group)
-            self._detail_group_badge.show()
-        else:
-            self._detail_group_badge.hide()
-
         # 用户名
         self._username_value.setText(entry.username or "（无）")
 
@@ -719,7 +698,6 @@ class MainWindow(FluentWindow):
             }
         """)
         self._detail_title.setText("选择一个条目查看详情")
-        self._detail_group_badge.hide()
         self._username_value.setText("")
         self._password_value.setText("")
         self._url_value.setText("")
