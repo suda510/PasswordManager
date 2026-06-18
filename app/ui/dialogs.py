@@ -11,7 +11,7 @@ from qfluentwidgets import (
     PushButton,
     PasswordLineEdit,
     MessageBox,
-    EditableComboBox,
+    ComboBox,
 )
 
 from app.core.models import Entry
@@ -74,14 +74,16 @@ class AddEditDialog(QDialog):
             layout.addWidget(input_widget)
             self._inputs[field_name] = input_widget
 
-        # 分组选择
+        # 分组选择（只能选已有分组，新分组在"管理分组"中创建）
         group_label = QLabel("分组")
         group_label.setStyleSheet(LABEL_STYLE)
         layout.addWidget(group_label)
-        self._group_combo = EditableComboBox()
-        self._group_combo.setPlaceholderText("选择或输入分组（可选）")
+        self._group_combo = ComboBox()
+        self._group_combo.setPlaceholderText("选择分组（可选）")
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
-        self._group_combo.addItems(self._groups)
+        self._group_combo.addItem("（无分组）", "")
+        for g in self._groups:
+            self._group_combo.addItem(g, g)
         layout.addWidget(self._group_combo)
 
         # 网址
@@ -110,11 +112,10 @@ class AddEditDialog(QDialog):
             self._url_input.setText(self._entry.url)
             self._notes_input.setPlainText(self._entry.notes)
             if self._entry.group:
-                idx = self._group_combo.findText(self._entry.group)
-                if idx >= 0:
-                    self._group_combo.setCurrentIndex(idx)
-                else:
-                    self._group_combo.setCurrentText(self._entry.group)
+                for i in range(self._group_combo.count()):
+                    if self._group_combo.itemData(i) == self._entry.group:
+                        self._group_combo.setCurrentIndex(i)
+                        break
 
         layout.addSpacing(8)
 
@@ -145,7 +146,7 @@ class AddEditDialog(QDialog):
         password = self._inputs["password"].text()
         url = self._url_input.text().strip()
         notes = self._notes_input.toPlainText().strip()
-        group = self._group_combo.currentText().strip()
+        group = self._group_combo.currentData() or ""
 
         if self._is_edit:
             return self._entry.with_update(
