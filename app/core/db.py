@@ -47,6 +47,7 @@ class Database:
                 password_cipher TEXT,
                 url TEXT DEFAULT '',
                 notes TEXT DEFAULT '',
+                "group" TEXT DEFAULT '',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
@@ -58,6 +59,13 @@ class Database:
                 value TEXT NOT NULL
             )
         """)
+
+        # 迁移：为旧表添加 group 列
+        cursor.execute("PRAGMA table_info(entries)")
+        columns = [row["name"] for row in cursor.fetchall()]
+        if "group" not in columns:
+            cursor.execute('ALTER TABLE entries ADD COLUMN "group" TEXT DEFAULT \'\'')
+            self._conn.commit()
 
         self._conn.commit()
 
@@ -74,6 +82,7 @@ class Database:
             "password_cipher": password_enc["ciphertext"],
             "url": entry.url,
             "notes": entry.notes,
+            "group": entry.group,
             "created_at": entry.created_at,
             "updated_at": entry.updated_at,
         }
@@ -89,6 +98,7 @@ class Database:
             password=password,
             url=row["url"],
             notes=row["notes"],
+            group=row["group"] if "group" in row.keys() else "",
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
@@ -106,10 +116,10 @@ class Database:
         self._conn.execute(
             """INSERT INTO entries
                (id, title, username_nonce, username_cipher,
-                password_nonce, password_cipher, url, notes,
+                password_nonce, password_cipher, url, notes, "group",
                 created_at, updated_at)
                VALUES (:id, :title, :username_nonce, :username_cipher,
-                       :password_nonce, :password_cipher, :url, :notes,
+                       :password_nonce, :password_cipher, :url, :notes, :group,
                        :created_at, :updated_at)""",
             data,
         )
@@ -138,6 +148,7 @@ class Database:
                password_cipher = :password_cipher,
                url = :url,
                notes = :notes,
+               "group" = :group,
                updated_at = :updated_at
                WHERE id = :id""",
             data,
@@ -201,6 +212,32 @@ class Database:
         rows = self._conn.execute(
             "SELECT * FROM entries WHERE title LIKE ? ORDER BY title COLLATE NOCASE",
             (pattern,),
+        ).fetchall()
+        return [self._decrypt_entry_row(row) for row in rows]
+
+    def get_groups(self) -> list[str]:
+        """获取所有分组名称
+
+        Returns:
+            去重后的分组列表（按字母排序），不含空分组
+        """
+        rows = self._conn.execute(
+            'SELECT DISTINCT "group" FROM entries WHERE "group" != \'\' ORDER BY "group" COLLATE NOCASE'
+        ).fetchall()
+        return [row["group"] for row in rows]
+
+    def get_entries_by_group(self, group: str) -> list[Entry]:
+        """按分组获取条目
+
+        Args:
+            group: 分组名称
+
+        Returns:
+            该分组下的条目列表
+        """
+        rows = self._conn.execute(
+            'SELECT * FROM entries WHERE "group" = ? ORDER BY title COLLATE NOCASE',
+            (group,),
         ).fetchall()
         return [self._decrypt_entry_row(row) for row in rows]
 
