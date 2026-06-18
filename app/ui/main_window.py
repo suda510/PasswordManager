@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QGridLayout,
     QLabel,
     QListWidgetItem,
     QFrame,
@@ -278,18 +277,12 @@ class MainWindow(FluentWindow):
         sep.setStyleSheet("background: #eee;")
         right_layout.addWidget(sep)
 
-        # ── 字段详情区（QGridLayout 严格对齐） ──
+        # ── 字段详情区（紧凑纵向堆叠） ──
         fields_widget = QWidget()
         fields_widget.setStyleSheet("background: transparent;")
-        grid = QGridLayout(fields_widget)
-        grid.setContentsMargins(32, 28, 32, 28)
-        grid.setColumnMinimumWidth(0, 72)   # 标签列
-        grid.setColumnMinimumWidth(2, 36)   # 复制按钮列
-        grid.setColumnStretch(1, 1)          # 值列自适应
-        grid.setHorizontalSpacing(16)
-        grid.setVerticalSpacing(0)
-
-        ROW_H = 52
+        fields_layout = QVBoxLayout(fields_widget)
+        fields_layout.setContentsMargins(32, 24, 32, 24)
+        fields_layout.setSpacing(18)
 
         fields = [
             ("用户名", "username", True),
@@ -298,27 +291,31 @@ class MainWindow(FluentWindow):
             ("备  注", "notes", False),
         ]
 
-        for row_idx, (label_text, field_name, copyable) in enumerate(fields):
-            # 标签
-            label = QLabel(label_text)
-            label.setFixedHeight(ROW_H)
-            label.setFont(QFont("Microsoft YaHei", 11))
-            label.setStyleSheet("color: #999; background: transparent; border: none;")
-            label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            grid.addWidget(label, row_idx, 0)
+        for label_text, field_name, copyable in fields:
+            # 整个字段块
+            block = QVBoxLayout()
+            block.setSpacing(4)
 
-            # 值
+            # 标签行
+            label = QLabel(label_text)
+            label.setFont(QFont("Microsoft YaHei", 10))
+            label.setStyleSheet("color: #999; background: transparent; border: none;")
+            block.addWidget(label)
+
+            # 值行（值 + 复制按钮同行）
+            val_row = QHBoxLayout()
+            val_row.setContentsMargins(0, 0, 0, 0)
+            val_row.setSpacing(8)
+
             value = QLabel("")
-            value.setFixedHeight(ROW_H)
-            value.setFont(QFont("Microsoft YaHei", 12))
+            value.setFont(QFont("Microsoft YaHei", 13))
             value.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
             value.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            grid.addWidget(value, row_idx, 1)
+            val_row.addWidget(value, stretch=1)
 
-            # 复制按钮
             if copyable:
                 copy_btn = ToolButton()
-                copy_btn.setFixedSize(28, 28)
+                copy_btn.setFixedSize(26, 26)
                 copy_btn.setIcon(FIF.COPY.icon())
                 copy_btn.setToolTip("复制")
                 copy_btn.setCursor(Qt.PointingHandCursor)
@@ -336,31 +333,15 @@ class MainWindow(FluentWindow):
                     copy_btn.clicked.connect(self._copy_username)
                 elif field_name == "password":
                     copy_btn.clicked.connect(self._copy_password)
-                # 用一个容器把按钮垂直居中
-                btn_wrap = QWidget()
-                btn_wrap.setStyleSheet("background: transparent;")
-                btn_wrap.setFixedSize(36, ROW_H)
-                btn_layout = QHBoxLayout(btn_wrap)
-                btn_layout.setContentsMargins(0, 0, 0, 0)
-                btn_layout.addWidget(copy_btn, alignment=Qt.AlignVCenter)
-                grid.addWidget(btn_wrap, row_idx, 2)
+                val_row.addWidget(copy_btn, alignment=Qt.AlignVCenter)
                 setattr(self, f"_{field_name}_copy_btn", copy_btn)
-            else:
-                # 空占位，保持列对齐
-                spacer = QWidget()
-                spacer.setFixedSize(36, ROW_H)
-                spacer.setStyleSheet("background: transparent;")
-                grid.addWidget(spacer, row_idx, 2)
 
+            block.addLayout(val_row)
             setattr(self, f"_{field_name}_value", value)
 
-            # 行间分隔线（跨所有列）
-            if row_idx < len(fields) - 1:
-                line = QWidget()
-                line.setFixedHeight(1)
-                line.setStyleSheet("background: #eee;")
-                grid.addWidget(line, row_idx + 1, 0, 1, 3)
+            fields_layout.addLayout(block)
 
+        fields_layout.addStretch()
         right_layout.addWidget(fields_widget, stretch=1)
         layout.addWidget(right_panel, stretch=1)
 
