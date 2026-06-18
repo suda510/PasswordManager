@@ -16,6 +16,7 @@ class Entry:
     password: str = ""
     url: str = ""
     notes: str = ""
+    group: str = ""
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -28,6 +29,7 @@ class Entry:
             "password": self.password,
             "url": self.url,
             "notes": self.notes,
+            "group": self.group,
             "created_at": self.created_at,
             "updated_at": datetime.now().isoformat(),
         }

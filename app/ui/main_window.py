@@ -84,7 +84,7 @@ class MainWindow(FluentWindow):
         layout.setContentsMargins(20, 12, 20, 20)
         layout.setSpacing(16)
 
-        # 左侧：搜索 + 列表 + 按钮
+        # 左侧：搜索 + 分组 + 列表 + 按钮
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -94,6 +94,19 @@ class MainWindow(FluentWindow):
         self._search_input.setPlaceholderText("搜索网站/软件名...")
         self._search_input.textChanged.connect(self._on_search)
         left_layout.addWidget(self._search_input)
+
+        # 分组筛选栏
+        group_card = CardWidget()
+        group_card.setFixedHeight(44)
+        group_layout = QHBoxLayout(group_card)
+        group_layout.setContentsMargins(8, 4, 8, 4)
+        group_layout.setSpacing(4)
+
+        self._group_btns: dict[str, PushButton] = {}
+        self._current_group = ""
+        self._refresh_groups(group_layout)
+
+        left_layout.addWidget(group_card)
 
         list_card = CardWidget()
         list_layout = QVBoxLayout(list_card)
@@ -131,6 +144,7 @@ class MainWindow(FluentWindow):
         right_layout.addSpacing(4)
 
         fields = [
+            ("分组", "group"),
             ("用户名", "username"),
             ("密码", "password"),
             ("网址", "url"),
@@ -174,18 +188,69 @@ class MainWindow(FluentWindow):
 
     def _load_entries(self):
         self._entry_list.clear()
-        self._entries = self._db.get_all_entries()
+        if self._current_group:
+            self._entries = self._db.get_entries_by_group(self._current_group)
+        else:
+            self._entries = self._db.get_all_entries()
         for entry in self._entries:
             item = QListWidgetItem(f"{entry.title}  —  {entry.username}")
             item.setData(Qt.UserRole, entry.id)
             self._entry_list.addItem(item)
+
+    def _refresh_groups(self, layout=None):
+        """刷新分组按钮栏"""
+        if layout is None:
+            # 重建现有布局
+            parent = list(self._group_btns.values())[0].parentWidget() if self._group_btns else None
+            if parent is None:
+                return
+            layout = parent.layout()
+
+        # 清除旧按钮
+        for btn in self._group_btns.values():
+            layout.removeWidget(btn)
+            btn.deleteLater()
+        self._group_btns.clear()
+
+        # "全部"按钮
+        all_btn = PushButton("全部")
+        all_btn.setFixedHeight(32)
+        all_btn.setCheckable(True)
+        all_btn.setChecked(not self._current_group)
+        all_btn.clicked.connect(lambda: self._on_group_clicked(""))
+        layout.addWidget(all_btn)
+        self._group_btns[""] = all_btn
+
+        # 各分组按钮
+        groups = self._db.get_groups()
+        for group in groups:
+            btn = PushButton(group)
+            btn.setFixedHeight(32)
+            btn.setCheckable(True)
+            btn.setChecked(self._current_group == group)
+            btn.clicked.connect(lambda checked, g=group: self._on_group_clicked(g))
+            layout.addWidget(btn)
+            self._group_btns[group] = btn
+
+        layout.addStretch()
+
+    def _on_group_clicked(self, group: str):
+        """分组按钮点击"""
+        self._current_group = group
+        # 更新按钮选中状态
+        for name, btn in self._group_btns.items():
+            btn.setChecked(name == group)
+        self._load_entries()
 
     def _on_search(self, text: str):
         if not text.strip():
             self._load_entries()
             return
         self._entry_list.clear()
-        self._entries = self._db.search_entries(text.strip())
+        results = self._db.search_entries(text.strip())
+        if self._current_group:
+            results = [e for e in results if e.group == self._current_group]
+        self._entries = results
         for entry in self._entries:
             item = QListWidgetItem(f"{entry.title}  —  {entry.username}")
             item.setData(Qt.UserRole, entry.id)
@@ -202,6 +267,7 @@ class MainWindow(FluentWindow):
 
     def _show_detail(self, entry: Entry):
         self._detail_title.setText(entry.title)
+        self._group_value.setText(entry.group if entry.group else "（未分组）")
         self._username_value.setText(entry.username)
         self._password_value.setText("•" * len(entry.password))
         self._url_value.setText(
@@ -214,6 +280,7 @@ class MainWindow(FluentWindow):
     def _clear_detail(self):
         self._current_entry = None
         self._detail_title.setText("选择一个条目查看详情")
+        self._group_value.setText("")
         self._username_value.setText("")
         self._password_value.setText("")
         self._url_value.setText("")
@@ -243,20 +310,22 @@ class MainWindow(FluentWindow):
             self._show_info("密码已复制到剪贴板")
 
     def _on_add(self):
-        dialog = AddEditDialog(self)
+        dialog = AddEditDialog(self, groups=self._db.get_groups())
         if dialog.exec_():
             self._db.add_entry(dialog.get_entry())
             self._load_entries()
+            self._refresh_groups()
             self._show_info("条目已添加")
 
     def _on_edit(self):
         if not self._current_entry:
             InfoBar.info(title="提示", content="请先选择一个条目", position=InfoBarPosition.TOP_RIGHT, duration=2000, parent=self)
             return
-        dialog = AddEditDialog(self, self._current_entry)
+        dialog = AddEditDialog(self, self._current_entry, groups=self._db.get_groups())
         if dialog.exec_():
             self._db.update_entry(dialog.get_entry())
             self._load_entries()
+            self._refresh_groups()
             self._show_info("条目已更新")
 
     def _on_delete(self):
@@ -268,6 +337,7 @@ class MainWindow(FluentWindow):
             self._db.delete_entry(self._current_entry.id)
             self._clear_detail()
             self._load_entries()
+            self._refresh_groups()
             self._show_info("条目已删除")
 
     def _on_change_password(self):
