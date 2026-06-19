@@ -7,6 +7,7 @@ import hashlib
 import html as html_mod
 
 from PyQt5.QtWidgets import (
+    QApplication,
     QMainWindow,
     QWidget,
     QVBoxLayout,
