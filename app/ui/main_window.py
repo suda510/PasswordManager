@@ -203,7 +203,7 @@ class MainWindow(FluentWindow):
         )
         self.navigationInterface.addItem(
             routeKey="lock",
-            icon=FIF.FINGERPRINT,
+            icon=FIF.POWER_BUTTON,
             text="锁定",
             onClick=self._on_lock,
             position=NavigationItemPosition.BOTTOM,
