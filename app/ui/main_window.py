@@ -194,7 +194,7 @@ class MainWindow(FluentWindow):
         )
         self.navigationInterface.addItem(
             routeKey="changePassword",
-            icon=FIF.SETTING,
+            icon=FIF.EDIT,
             text="修改主密码",
             onClick=self._on_change_password,
             position=NavigationItemPosition.BOTTOM,
