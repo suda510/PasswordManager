@@ -318,11 +318,33 @@ class MainWindow(QMainWindow):
             def showPopup(self):
                 self.view().setMinimumWidth(self.width())
                 super().showPopup()
-                # 去掉 popup 的原生边框
                 popup = self.view().parent()
                 if popup and popup != self:
-                    popup.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
-                    popup.setStyleSheet("background: white; border: 1px solid #e0e0e0; border-radius: 8px;")
+                    popup.setWindowFlags(Qt.FramelessWindowHint | Qt.Popup)
+                    popup.setAttribute(Qt.WA_TranslucentBackground)
+                    # view 自身圆角白底
+                    self.view().setStyleSheet("""
+                        QListView {
+                            background: white;
+                            border: 1px solid #e0e0e0;
+                            border-radius: 8px;
+                            padding: 4px;
+                            outline: none;
+                        }
+                        QListView::item {
+                            height: 40px;
+                            padding: 0 14px;
+                            border-radius: 6px;
+                            margin: 2px 4px;
+                        }
+                        QListView::item:selected {
+                            background: #e8f0fe;
+                            color: #0078d4;
+                        }
+                        QListView::item:hover {
+                            background: #f5f5f5;
+                        }
+                    """)
 
         from PyQt5.QtWidgets import QStyledItemDelegate
         from PyQt5.QtCore import QSize
