@@ -54,7 +54,7 @@ def _toast(parent, message, level="info"):
     label.setFixedHeight(30)
     label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 4px; }}")
 
-    label.move(160, 12)
+    label.move(200, 5)
     label.raise_()
     label.show()
 
@@ -63,8 +63,8 @@ def _toast(parent, message, level="info"):
 
 def _confirm(parent, title, message):
     """自定义确认对话框，返回 True/False"""
-    dialog = QDialog(None)  # parent=None 避免继承父窗口拖拽
-    dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint)
+    dialog = QDialog(None)
+    dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
     dialog.setFixedSize(400, 200)
     dialog.setWindowTitle(title)
     dialog.setStyleSheet("""

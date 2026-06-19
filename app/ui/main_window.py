@@ -108,7 +108,7 @@ def _toast(parent, message, level="info"):
 def _confirm(parent, title, message):
     """自定义确认对话框，返回 True/False"""
     dialog = QDialog(None)
-    dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint)
+    dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
     dialog.setFixedSize(400, 200)
     dialog.setWindowTitle(title)
     dialog.setStyleSheet("""
