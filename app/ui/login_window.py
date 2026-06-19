@@ -43,31 +43,29 @@ from app.ui.styles import (
 
 
 def _toast(parent, message, level="info"):
-    """右上角自动消失的通知"""
+    """标题右侧自动消失的通知"""
     from PyQt5.QtGui import QPalette, QColor
 
     colors = {"info": QColor(50, 50, 50), "error": QColor(232, 17, 35), "warn": QColor(216, 59, 1)}
     bg = colors.get(level, QColor(50, 50, 50))
 
     label = QLabel(parent)
-    label.setText(f"  {message}")
-    label.setFont(QFont("Microsoft YaHei", 11))
-    label.setFixedSize(300, 44)
-    label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+    label.setText(f" {message} ")
+    label.setFont(QFont("Microsoft YaHei", 10))
+    label.adjustSize()
+    label.setFixedHeight(30)
 
-    # 用调色板设置颜色（不依赖样式表，避免继承问题）
     pal = label.palette()
     pal.setColor(QPalette.Window, bg)
     pal.setColor(QPalette.WindowText, QColor(255, 255, 255))
     label.setPalette(pal)
     label.setAutoFillBackground(True)
 
-    # 定位到右上角
-    label.move(parent.width() - 316, 16)
+    # 定位到标题右侧
+    label.move(160, 12)
     label.raise_()
     label.show()
 
-    # 2.5 秒后自动消失
     QTimer.singleShot(2500, label.deleteLater)
 
 
@@ -266,7 +264,18 @@ class ForgotPasswordDialog(QDialog):
         # 方式3：清除数据重新开始
         danger_btn = QPushButton("清除所有数据，重新开始")
         danger_btn.setFixedHeight(BTN_MIN_HEIGHT)
-        danger_btn.setStyleSheet("color: #e81123; border: none; background: transparent; font-size: 13px;")
+        danger_btn.setStyleSheet("""
+            QPushButton {
+                color: #e81123;
+                border: none;
+                background: transparent;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                text-decoration: underline;
+            }
+        """)
+        danger_btn.setCursor(Qt.PointingHandCursor)
         danger_btn.clicked.connect(self._on_reset_all)
         layout.addWidget(danger_btn, alignment=Qt.AlignCenter)
 
