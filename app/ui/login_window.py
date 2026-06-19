@@ -386,9 +386,9 @@ class LoginWindow(QWidget):
 
     def _setup_ui(self):
         self.setWindowTitle("密码管理器")
-        self.setFixedSize(DIALOG_WIDTH, 420 if self._is_first_run else 380)
-        self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setFixedSize(DIALOG_WIDTH, 420 if self._is_first_run else 380)
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
