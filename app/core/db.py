@@ -276,6 +276,44 @@ class Database:
         self._conn.commit()
         return cursor.rowcount
 
+    def rekey(self, new_key: bytes) -> None:
+        """更换加密密钥并重新加密所有条目
+
+        Args:
+            new_key: 新的加密密钥
+        """
+        # 用旧密钥解密所有条目
+        entries = self.get_all_entries()
+
+        # 切换到新密钥
+        old_key = self._key
+        self._key = new_key
+
+        try:
+            # 在事务中用新密钥重新加密所有条目
+            for entry in entries:
+                data = self._encrypt_entry_fields(entry)
+                self._conn.execute(
+                    """UPDATE entries SET
+                       title = :title,
+                       username_nonce = :username_nonce,
+                       username_cipher = :username_cipher,
+                       password_nonce = :password_nonce,
+                       password_cipher = :password_cipher,
+                       url = :url,
+                       notes = :notes,
+                       "group" = :group,
+                       updated_at = :updated_at
+                       WHERE id = :id""",
+                    data,
+                )
+            self._conn.commit()
+        except Exception:
+            # 失败时回滚并恢复旧密钥
+            self._conn.rollback()
+            self._key = old_key
+            raise
+
     def export_csv(self) -> str:
         """导出所有条目为 CSV 字符串
 

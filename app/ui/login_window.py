@@ -218,6 +218,18 @@ class ForgotPasswordDialog(QDialog):
             InfoBar.error(title="错误", content="恢复密钥错误", position=InfoBarPosition.TOP, duration=2000, parent=self)
             return
 
+        # 警告：重置密码后旧数据将无法解密
+        from PyQt5.QtWidgets import QMessageBox
+        warn = QMessageBox.warning(
+            self, "警告",
+            "重置主密码后，之前保存的所有密码数据将无法解密。\n\n"
+            "这是由于密码加密机制的限制。\n"
+            "确定要继续吗？",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+        if warn != QMessageBox.Yes:
+            return
+
         new_salt = generate_salt()
         new_key = derive_key(new_password, new_salt, DEFAULT_ITERATIONS)
         new_hash = hash_master_password(new_password, new_salt, DEFAULT_ITERATIONS)
