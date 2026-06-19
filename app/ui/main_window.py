@@ -577,12 +577,6 @@ class MainWindow(QMainWindow):
 
     def _setup_toolbar(self):
         """创建底部按钮栏（卡片式）"""
-        # 底部容器
-        bottom = QWidget()
-        bottom.setStyleSheet("background: #f5f5f5;")
-        bottom_layout = QHBoxLayout(bottom)
-        bottom_layout.setContentsMargins(20, 12, 20, 12)
-
         # 卡片容器
         card = QFrame()
         card.setStyleSheet("""
@@ -596,7 +590,6 @@ class MainWindow(QMainWindow):
         card_layout.setContentsMargins(8, 8, 8, 8)
         card_layout.setSpacing(4)
 
-        # 按钮样式
         btn_style = """
             QPushButton {
                 background: transparent;
@@ -624,11 +617,11 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(handler)
             card_layout.addWidget(btn)
 
-        bottom_layout.addStretch()
-        bottom_layout.addWidget(card)
-        bottom_layout.addStretch()
-
-        self.setMenuWidget(bottom)
+        # 底部状态栏
+        status = self.statusBar()
+        status.setStyleSheet("background: #f5f5f5; border: none;")
+        status.setContentsMargins(20, 8, 20, 8)
+        status.addWidget(card, stretch=1)
 
     # ── 分组管理 ──
 
