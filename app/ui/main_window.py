@@ -318,6 +318,11 @@ class MainWindow(QMainWindow):
             def showPopup(self):
                 self.view().setMinimumWidth(self.width())
                 super().showPopup()
+                # 去掉 popup 的原生边框
+                popup = self.view().parent()
+                if popup and popup != self:
+                    popup.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
+                    popup.setStyleSheet("background: white; border: 1px solid #e0e0e0; border-radius: 8px;")
 
         from PyQt5.QtWidgets import QStyledItemDelegate
         from PyQt5.QtCore import QSize
@@ -333,15 +338,6 @@ class MainWindow(QMainWindow):
         # 下拉视图样式（popup 窗口去掉边框）
         self._group_combo.setItemDelegate(FixedHeightDelegate())
         self._group_combo.view().setStyleSheet(GROUP_LIST_STYLE)
-        # popup 窗口去掉原生边框，自身圆角白底
-        popup = self._group_combo.view().window()
-        popup.setWindowFlags(popup.windowFlags() | Qt.FramelessWindowHint)
-        popup.setAttribute(Qt.WA_TranslucentBackground)
-        popup.setStyleSheet("""
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-        """)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
