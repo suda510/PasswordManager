@@ -322,13 +322,14 @@ class MainWindow(QMainWindow):
                 if popup and popup != self:
                     popup.setWindowFlags(Qt.FramelessWindowHint | Qt.Popup)
                     popup.setAttribute(Qt.WA_TranslucentBackground)
+                    popup.setFixedSize(popup.size())  # 禁止 resize
                     # view 自身圆角白底
                     self.view().setStyleSheet("""
                         QListView {
                             background: white;
                             border: 1px solid #e0e0e0;
                             border-radius: 8px;
-                            padding: 4px;
+                            padding: 6px;
                             outline: none;
                         }
                         QListView::item {
