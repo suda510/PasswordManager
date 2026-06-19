@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QListWidgetItem,
     QFrame,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QColor
 
 from qfluentwidgets import (
@@ -134,6 +134,8 @@ class EntryCardWidget(QFrame):
 
 class MainWindow(FluentWindow):
     """主窗口"""
+
+    logout = pyqtSignal()
 
     def __init__(self, db: Database, config: ConfigManager):
         super().__init__()
@@ -979,8 +981,10 @@ class MainWindow(FluentWindow):
             self._config.set("salt", new_salt.hex())
             self._config.set("kdf_iterations", str(DEFAULT_ITERATIONS))
 
-            InfoBar.success(title="成功", content="主密码已修改", position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+            InfoBar.success(title="成功", content="主密码已修改，请重新登录",
+                            position=InfoBarPosition.TOP, duration=2000, parent=dialog)
             dialog.accept()
+            self.logout.emit()
 
         save_btn.clicked.connect(on_save)
         dialog.exec_()

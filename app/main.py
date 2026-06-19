@@ -50,6 +50,14 @@ def main():
             windows["main"] = main_window
             main_window.show()
 
+            def on_logout():
+                """修改密码后重新登录"""
+                main_window.close()
+                db.close()
+                create_login_window()
+
+            main_window.logout.connect(on_logout)
+
         def on_need_restart():
             """清除数据后重新创建登录窗口"""
             login_window.close()
