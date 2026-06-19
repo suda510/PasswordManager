@@ -33,6 +33,7 @@ class AddEditDialog(QDialog):
         self._entry = entry
         self._is_edit = entry is not None
         self._groups = groups or []
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         if parent:
             self.setWindowIcon(parent.windowIcon())
         self._setup_ui()
