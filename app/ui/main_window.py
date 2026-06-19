@@ -333,8 +333,8 @@ class MainWindow(QMainWindow):
         # 下拉视图样式（popup 窗口去掉边框）
         self._group_combo.setItemDelegate(FixedHeightDelegate())
         self._group_combo.view().setStyleSheet(GROUP_LIST_STYLE)
-        # 设置 popup 窗口无边框
-        self._group_combo.view().window().setStyleSheet("background: white; border: none;")
+        # popup 窗口四角统一圆角
+        self._group_combo.view().window().setStyleSheet("background: white; border: 1px solid #e0e0e0; border-radius: 8px;")
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
