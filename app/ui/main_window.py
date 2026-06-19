@@ -962,9 +962,19 @@ class MainWindow(FluentWindow):
                 InfoBar.error(title="错误", content="当前密码错误", position=InfoBarPosition.TOP, duration=2000, parent=dialog)
                 return
 
-            # 更新密码
+            # 派生新密钥并重新加密所有数据
             new_salt = generate_salt()
+            new_key = derive_key(new_password, new_salt, DEFAULT_ITERATIONS)
             new_hash = hash_master_password(new_password, new_salt, DEFAULT_ITERATIONS)
+
+            try:
+                self._db.rekey(new_key)
+            except Exception:
+                InfoBar.error(title="错误", content="数据加密失败，请重试",
+                              position=InfoBarPosition.TOP, duration=3000, parent=dialog)
+                return
+
+            # 更新配置
             self._config.set("master_password_hash", new_hash)
             self._config.set("salt", new_salt.hex())
             self._config.set("kdf_iterations", str(DEFAULT_ITERATIONS))
