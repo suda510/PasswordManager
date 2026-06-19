@@ -56,7 +56,20 @@ from app.ui.styles import (
     BG_PAGE,
 )
 from app.utils.clipboard import copy_to_clipboard
-from app.ui.icon_gen import create_copy_icon, create_eye_icon
+from app.ui.icon_gen import create_copy_icon, create_eye_icon, create_arrow_icon
+from app.utils.paths import get_data_dir
+
+
+def _get_combo_style() -> str:
+    """获取带正确箭头路径的下拉框样式"""
+    import os, sys
+    # 打包后资源在 sys._MEIPASS，开发时在项目根目录
+    if hasattr(sys, '_MEIPASS'):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    arrow_path = os.path.join(base, 'assets', 'arrow.png').replace('\\', '/')
+    return COMBO_STYLE.replace('%ARROW_PATH%', arrow_path)
 
 
 # ── 首字母头像配色 ──
@@ -321,32 +334,10 @@ class MainWindow(QMainWindow):
         group_row.setSpacing(8)
         self._group_combo = QComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
-        self._group_combo.setStyleSheet(COMBO_STYLE)
-        # 设置下拉视图样式
+        self._group_combo.setStyleSheet(_get_combo_style())
         view = self._group_combo.view()
-        view.setStyleSheet("""
-            QListView {
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                background: white;
-                outline: none;
-                padding: 4px;
-            }
-            QListView::item {
-                height: 40px;
-                padding: 0 14px;
-                border-radius: 6px;
-                margin: 2px 4px;
-            }
-            QListView::item:selected {
-                background: #e8f0fe;
-                color: #0078d4;
-                border-left: 3px solid #0078d4;
-            }
-            QListView::item:hover {
-                background: #f5f5f5;
-            }
-        """)
+        view.setStyleSheet(GROUP_LIST_STYLE)
+        view.setSpacing(2)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 

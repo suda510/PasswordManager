@@ -27,6 +27,16 @@ from app.ui.styles import (
 )
 
 
+def _get_combo_style() -> str:
+    import os, sys
+    if hasattr(sys, '_MEIPASS'):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    arrow_path = os.path.join(base, 'assets', 'arrow.png').replace('\\', '/')
+    return COMBO_STYLE.replace('%ARROW_PATH%', arrow_path)
+
+
 class AddEditDialog(QDialog):
     """新增/编辑条目对话框"""
 
@@ -85,7 +95,7 @@ class AddEditDialog(QDialog):
         layout.addWidget(group_label)
         self._group_combo = QComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
-        self._group_combo.setStyleSheet(COMBO_STYLE)
+        self._group_combo.setStyleSheet(_get_combo_style())
         self._group_combo.addItem("（无分组）", "")
         for g in self._groups:
             self._group_combo.addItem(g, g)

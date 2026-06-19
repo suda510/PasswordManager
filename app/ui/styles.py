@@ -54,13 +54,9 @@ COMBO_STYLE = """
         background: #f5f5f5;
     }
     QComboBox::down-arrow {
-        image: none;
-        width: 0;
-        height: 0;
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 6px solid #999;
-        margin-right: 8px;
+        image: url(%ARROW_PATH%);
+        width: 12px;
+        height: 12px;
     }
     QComboBox QAbstractItemView {
         border: 1px solid #e0e0e0;
