@@ -86,52 +86,30 @@ def _avatar_color(text: str) -> str:
     return AVATAR_COLORS[idx]
 
 
-class Toast(QWidget):
-    """右上角自动消失的通知"""
-
-    _active = []  # 防止被 GC 回收
-
-    def __init__(self, parent, message, duration=2500, level="info"):
-        super().__init__(parent)
-        Toast._active.append(self)
-
-        colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
-        bg = colors.get(level, "#323232")
-
-        self.setFixedSize(300, 44)
-        self.setStyleSheet(f"background: {bg}; border-radius: 8px; border: none;")
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 0, 16, 0)
-        layout.setSpacing(8)
-
-        icon_text = {"info": "✓", "error": "✕", "warn": "!"}.get(level, "✓")
-        icon = QLabel(icon_text)
-        icon.setFont(QFont("Microsoft YaHei", 12, QFont.Bold))
-        icon.setStyleSheet("color: white; background: transparent; border: none;")
-        layout.addWidget(icon)
-
-        label = QLabel(message)
-        label.setFont(QFont("Microsoft YaHei", 11))
-        label.setStyleSheet("color: white; background: transparent; border: none;")
-        layout.addWidget(label, stretch=1)
-
-        # 定位到右上角
-        self.move(parent.width() - self.width() - 16, 16)
-        self.raise_()
-        self.show()
-
-        QTimer.singleShot(duration, self._close)
-
-    def _close(self):
-        if self in Toast._active:
-            Toast._active.remove(self)
-        self.close()
-        self.deleteLater()
-
-
 def _toast(parent, message, level="info"):
-    Toast(parent, message, level=level)
+    """右上角自动消失的通知（用调色板避免样式继承）"""
+    from PyQt5.QtGui import QPalette, QColor
+
+    colors = {"info": QColor(50, 50, 50), "error": QColor(232, 17, 35), "warn": QColor(216, 59, 1)}
+    bg = colors.get(level, QColor(50, 50, 50))
+
+    label = QLabel(parent)
+    label.setText(f"  {message}")
+    label.setFont(QFont("Microsoft YaHei", 11))
+    label.setFixedSize(300, 44)
+    label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+
+    pal = label.palette()
+    pal.setColor(QPalette.Window, bg)
+    pal.setColor(QPalette.WindowText, QColor(255, 255, 255))
+    label.setPalette(pal)
+    label.setAutoFillBackground(True)
+
+    label.move(parent.width() - 316, 16)
+    label.raise_()
+    label.show()
+
+    QTimer.singleShot(2500, label.deleteLater)
 
 
 def _confirm(parent, title, message):
@@ -336,10 +314,10 @@ class MainWindow(QMainWindow):
 
         self._group_combo = QComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
-        self._group_combo.setMinimumWidth(250)
         self._group_combo.setStyleSheet(_get_combo_style())
-        # 下拉视图样式
+        # 下拉视图样式 + 强制宽度
         self._group_combo.view().setStyleSheet(GROUP_LIST_STYLE)
+        self._group_combo.view().setFixedWidth(250)
         self._group_combo.view().setSpacing(2)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
@@ -584,6 +562,9 @@ class MainWindow(QMainWindow):
 
         for group in self._get_all_groups():
             self._group_combo.addItem(group, group)
+
+        # 强制下拉视图宽度
+        self._group_combo.view().setFixedWidth(250)
 
         # 恢复之前选中的分组
         if current_text:
