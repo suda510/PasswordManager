@@ -52,10 +52,8 @@ def main():
 
             def on_logout():
                 """修改密码后重新登录"""
-                print("[DEBUG] on_logout called")
                 main_window.close()
                 db.close()
-                print("[DEBUG] creating login window...")
                 create_login_window()
 
             main_window.logout.connect(on_logout)
