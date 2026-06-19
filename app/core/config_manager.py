@@ -116,9 +116,6 @@ class ConfigManager:
 
     def close(self):
         """关闭连接"""
-        import traceback
-        print(f"[DEBUG] ConfigManager.close() called from:")
-        traceback.print_stack(limit=5)
         if self._conn:
             self._conn.close()
             self._conn = None

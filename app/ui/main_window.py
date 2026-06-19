@@ -181,13 +181,6 @@ class MainWindow(FluentWindow):
 
         # 底部导航
         self.navigationInterface.addItem(
-            routeKey="lock",
-            icon=FIF.FINGERPRINT,
-            text="锁定",
-            onClick=self._on_lock,
-            position=NavigationItemPosition.BOTTOM,
-        )
-        self.navigationInterface.addItem(
             routeKey="export",
             icon=FIF.SAVE,
             text="导出数据",
@@ -206,6 +199,13 @@ class MainWindow(FluentWindow):
             icon=FIF.INFO,
             text="关于",
             onClick=self._on_about,
+            position=NavigationItemPosition.BOTTOM,
+        )
+        self.navigationInterface.addItem(
+            routeKey="lock",
+            icon=FIF.FINGERPRINT,
+            text="锁定",
+            onClick=self._on_lock,
             position=NavigationItemPosition.BOTTOM,
         )
 
@@ -912,7 +912,6 @@ class MainWindow(FluentWindow):
 
     def _on_lock(self):
         """锁定：返回登录界面（数据库由 main.py handler 关闭）"""
-        print("[DEBUG] _on_lock called")
         self.logout.emit()
 
     def _on_export(self):
@@ -1021,7 +1020,6 @@ class MainWindow(FluentWindow):
 
     def _on_change_password(self):
         """修改主密码"""
-        print("[DEBUG] _on_change_password called")
         from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel
         from qfluentwidgets import PasswordLineEdit, LineEdit
 
@@ -1145,9 +1143,7 @@ class MainWindow(FluentWindow):
 
         dialog.exec_()
 
-        print(f"[DEBUG] dialog.exec_() returned, accepted={accepted[0]}")
         if accepted[0]:
-            print("[DEBUG] emitting logout from _on_change_password")
             self.logout.emit()
 
     def _on_about(self):
