@@ -94,6 +94,7 @@ def _confirm(parent, title, message):
     dialog = QDialog(parent)
     dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
     dialog.setFixedSize(380, 180)
+    dialog.setStyleSheet("QDialog { background: white; }")
     dialog.setWindowTitle(title)
     if parent:
         dialog.setWindowIcon(parent.windowIcon())
@@ -353,6 +354,7 @@ class ForgotPasswordDialog(QDialog):
         dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setFixedSize(360, 160)
         dialog.setWindowTitle("密码提示")
+        dialog.setStyleSheet("QDialog { background: white; }")
 
         layout = QVBoxLayout(dialog)
         layout.setSpacing(12)

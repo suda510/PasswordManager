@@ -140,6 +140,7 @@ def _confirm(parent, title, message):
     dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
     dialog.setFixedSize(380, 180)
     dialog.setWindowTitle(title)
+    dialog.setStyleSheet("QDialog { background: white; }")
     if parent:
         dialog.setWindowIcon(parent.windowIcon())
 
