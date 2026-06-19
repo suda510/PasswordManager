@@ -335,11 +335,13 @@ class MainWindow(QMainWindow):
         self._group_combo = QComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
         self._group_combo.setStyleSheet(_get_combo_style())
-        # 下拉视图单独设置样式（QSS 中 QAbstractItemView 不生效）
+        # 下拉视图单独设置样式
         from PyQt5.QtWidgets import QListView
         view = QListView()
         view.setStyleSheet(GROUP_LIST_STYLE)
         view.setSpacing(2)
+        view.setUniformItemSizes(True)
+        view.setIconSize(QSize(0, 0))
         self._group_combo.setView(view)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)

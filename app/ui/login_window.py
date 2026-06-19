@@ -219,6 +219,7 @@ class ForgotPasswordDialog(QDialog):
     def _setup_ui(self):
         self.setWindowTitle("忘记密码")
         self.setFixedSize(DIALOG_WIDTH, 420)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setStyleSheet(INPUT_STYLE)
 
         layout = QVBoxLayout(self)
@@ -344,10 +345,38 @@ class ForgotPasswordDialog(QDialog):
 
     def _show_hint(self):
         hint = self._config.get("password_hint")
-        if hint:
-            _toast(self, f"密码提示：{hint}")
-        else:
+        if not hint:
             _toast(self, "未设置密码提示", "warn")
+            return
+        # 自定义弹窗显示密码提示
+        dialog = QDialog(self)
+        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        dialog.setFixedSize(360, 160)
+        dialog.setWindowTitle("密码提示")
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(12)
+        layout.setContentsMargins(24, 20, 24, 20)
+
+        title = QLabel("密码提示")
+        title.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
+        title.setStyleSheet("color: #1a1a1a; background: transparent;")
+        layout.addWidget(title)
+
+        hint_label = QLabel(hint)
+        hint_label.setFont(QFont("Microsoft YaHei", 12))
+        hint_label.setStyleSheet("color: #333; background: #f8f8f8; border: 1px solid #eee; border-radius: 6px; padding: 10px;")
+        hint_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        hint_label.setWordWrap(True)
+        layout.addWidget(hint_label)
+
+        ok_btn = QPushButton("确定")
+        ok_btn.setStyleSheet(PRIMARY_BTN_STYLE)
+        ok_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        ok_btn.clicked.connect(dialog.accept)
+        layout.addWidget(ok_btn, alignment=Qt.AlignRight)
+
+        dialog.exec_()
 
     def _on_reset_all(self):
         if _confirm(

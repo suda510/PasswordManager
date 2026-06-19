@@ -204,27 +204,22 @@ def create_copy_icon() -> QIcon:
 
 
 def create_eye_icon(is_open=True) -> QIcon:
-    """眼睛图标（简洁版）"""
+    """密码可见性图标（极简：圆点 = 显示，横线 = 隐藏）"""
     def draw(p, s):
         cx, cy = s / 2, s / 2
         color = QColor("#888")
-        # 眼睛轮廓（椭圆）
-        pen = QPen(color, max(1, s * 0.09))
-        pen.setCapStyle(Qt.RoundCap)
-        p.setPen(pen)
-        p.setBrush(Qt.NoBrush)
-        rx, ry = s * 0.35, s * 0.2
-        p.drawEllipse(int(cx - rx), int(cy - ry), int(rx * 2), int(ry * 2))
         if is_open:
-            # 瞳孔（实心圆）
-            p.setBrush(color)
+            # 显示状态：实心圆（●）
             p.setPen(Qt.NoPen)
-            r = s * 0.11
+            p.setBrush(color)
+            r = s * 0.22
             p.drawEllipse(int(cx - r), int(cy - r), int(r * 2), int(r * 2))
         else:
-            # 闭眼（横线）
-            p.setPen(QPen(color, max(1, s * 0.09)))
-            p.drawLine(int(cx - rx), int(cy), int(cx + rx), int(cy))
+            # 隐藏状态：短横线（—）
+            pen = QPen(color, max(1, s * 0.15))
+            pen.setCapStyle(Qt.RoundCap)
+            p.setPen(pen)
+            p.drawLine(int(s * 0.25), int(cy), int(s * 0.75), int(cy))
 
     icon = QIcon()
     for sz in (16, 20, 24):
