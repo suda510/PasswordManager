@@ -88,15 +88,16 @@ def _avatar_color(text: str) -> str:
 
 def _toast(parent, message, level="info"):
     """右侧与标题同行的通知"""
-    colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
-    bg = colors.get(level, "#323232")
+    colors = {"info": "rgba(50,50,50,200)", "error": "rgba(232,17,35,200)", "warn": "rgba(216,59,1,200)"}
+    bg = colors.get(level, "rgba(50,50,50,200)")
 
     label = QLabel(parent)
-    label.setText(f" {message} ")
+    label.setText(message)
     label.setFont(QFont("Microsoft YaHei", 11))
+    label.setAlignment(Qt.AlignCenter)
     label.adjustSize()
-    label.setFixedHeight(34)
-    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 6px; }}")
+    label.setFixedSize(label.width() + 24, 40)
+    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 8px; }}")
 
     # 与右侧详情标题同行（大约 y=28）
     label.move(parent.width() - label.width() - 20, 28)
