@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QDialog,
     QMessageBox,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QMouseEvent
 
 from app.core.crypto import (
@@ -43,13 +43,32 @@ from app.ui.styles import (
 
 
 def _toast(parent, message, level="info"):
-    """用 QMessageBox 显示通知（确保文字可见）"""
-    if level == "error":
-        QMessageBox.critical(parent, "错误", message)
-    elif level == "warn":
-        QMessageBox.warning(parent, "提示", message)
-    else:
-        QMessageBox.information(parent, "提示", message)
+    """右上角自动消失的通知"""
+    from PyQt5.QtGui import QPalette, QColor
+
+    colors = {"info": QColor(50, 50, 50), "error": QColor(232, 17, 35), "warn": QColor(216, 59, 1)}
+    bg = colors.get(level, QColor(50, 50, 50))
+
+    label = QLabel(parent)
+    label.setText(f"  {message}")
+    label.setFont(QFont("Microsoft YaHei", 11))
+    label.setFixedSize(300, 44)
+    label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+
+    # 用调色板设置颜色（不依赖样式表，避免继承问题）
+    pal = label.palette()
+    pal.setColor(QPalette.Window, bg)
+    pal.setColor(QPalette.WindowText, QColor(255, 255, 255))
+    label.setPalette(pal)
+    label.setAutoFillBackground(True)
+
+    # 定位到右上角
+    label.move(parent.width() - 316, 16)
+    label.raise_()
+    label.show()
+
+    # 2.5 秒后自动消失
+    QTimer.singleShot(2500, label.deleteLater)
 
 
 def _confirm(parent, title, message):
