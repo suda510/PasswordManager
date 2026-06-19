@@ -12,8 +12,9 @@ from PyQt5.QtWidgets import (
     QLabel,
     QListWidgetItem,
     QFrame,
+    QGraphicsDropShadowEffect,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QFont, QColor
 
 from qfluentwidgets import (
@@ -83,16 +84,7 @@ class EntryCardWidget(QFrame):
     def _setup_ui(self):
         self.setFixedHeight(60)
         self.setCursor(Qt.PointingHandCursor)
-        self.setStyleSheet("""
-            QFrame {
-                background: transparent;
-                border: none;
-                border-radius: 8px;
-            }
-            QFrame:hover {
-                background: rgba(0, 0, 0, 0.04);
-            }
-        """)
+        self._update_style(selected=False)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
@@ -131,6 +123,30 @@ class EntryCardWidget(QFrame):
 
         layout.addLayout(text_layout, stretch=1)
 
+    def _update_style(self, selected: bool):
+        """更新卡片样式（选中/未选中）"""
+        if selected:
+            self.setStyleSheet("""
+                QFrame {
+                    background: #e8f0fe;
+                    border: none;
+                    border-left: 3px solid #0078d4;
+                    border-radius: 6px;
+                }
+            """)
+        else:
+            self.setStyleSheet("""
+                QFrame {
+                    background: transparent;
+                    border: none;
+                    border-left: 3px solid transparent;
+                    border-radius: 6px;
+                }
+                QFrame:hover {
+                    background: rgba(0, 0, 0, 0.04);
+                }
+            """)
+
 
 class MainWindow(FluentWindow):
     """主窗口"""
@@ -142,6 +158,10 @@ class MainWindow(FluentWindow):
         self._db = db
         self._config = config
         self._current_entry = None
+        self._card_widgets: dict[str, EntryCardWidget] = {}
+        self._search_debounce = QTimer()
+        self._search_debounce.setSingleShot(True)
+        self._search_debounce.timeout.connect(self._do_search)
         self._setup_ui()
         self._load_entries()
 
@@ -213,10 +233,37 @@ class MainWindow(FluentWindow):
         self._refresh_groups()
 
         list_card = CardWidget()
+        list_card.setStyleSheet("""
+            CardWidget {
+                background: white;
+                border: 1px solid rgba(0,0,0,0.06);
+                border-radius: 10px;
+            }
+        """)
+        list_shadow = QGraphicsDropShadowEffect()
+        list_shadow.setBlurRadius(16)
+        list_shadow.setOffset(0, 2)
+        list_shadow.setColor(QColor(0, 0, 0, 20))
+        list_card.setGraphicsEffect(list_shadow)
+
         list_layout = QVBoxLayout(list_card)
         list_layout.setContentsMargins(0, 0, 0, 0)
         self._entry_list = ListWidget()
         self._entry_list.currentItemChanged.connect(self._on_entry_selected)
+        self._entry_list.setStyleSheet("""
+            QListWidget {
+                background: transparent;
+                border: none;
+                outline: none;
+            }
+            QListWidget::item {
+                padding: 2px 6px;
+                border: none;
+            }
+            QListWidget::item:selected {
+                background: transparent;
+            }
+        """)
         list_layout.addWidget(self._entry_list)
         left_layout.addWidget(list_card)
 
@@ -239,6 +286,18 @@ class MainWindow(FluentWindow):
 
         # 右侧：详情卡片
         right_panel = CardWidget()
+        right_panel.setStyleSheet("""
+            CardWidget {
+                background: white;
+                border: 1px solid rgba(0,0,0,0.06);
+                border-radius: 10px;
+            }
+        """)
+        right_shadow = QGraphicsDropShadowEffect()
+        right_shadow.setBlurRadius(16)
+        right_shadow.setOffset(0, 2)
+        right_shadow.setColor(QColor(0, 0, 0, 20))
+        right_panel.setGraphicsEffect(right_shadow)
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
@@ -305,7 +364,34 @@ class MainWindow(FluentWindow):
         self._notes_block.hide()
 
         self._fields_layout.addStretch()
-        right_layout.addWidget(fields_widget, stretch=1)
+
+        # ── 空状态占位 ──
+        self._empty_state = QWidget()
+        self._empty_state.setStyleSheet("background: transparent;")
+        empty_layout = QVBoxLayout(self._empty_state)
+        empty_layout.setAlignment(Qt.AlignCenter)
+        empty_layout.setSpacing(12)
+
+        empty_icon = QLabel("🔒")
+        empty_icon.setFont(QFont("Microsoft YaHei", 40))
+        empty_icon.setAlignment(Qt.AlignCenter)
+        empty_icon.setStyleSheet("background: transparent; border: none;")
+        empty_layout.addWidget(empty_icon)
+
+        empty_text = QLabel("选择一个条目查看详情")
+        empty_text.setFont(QFont("Microsoft YaHei", 12))
+        empty_text.setAlignment(Qt.AlignCenter)
+        empty_text.setStyleSheet("color: #bbb; background: transparent; border: none;")
+        empty_layout.addWidget(empty_text)
+
+        # 用 QStackedLayout 切换空状态和字段详情
+        from PyQt5.QtWidgets import QStackedLayout
+        self._detail_stack = QStackedLayout()
+        self._detail_stack.addWidget(self._empty_state)   # index 0
+        self._detail_stack.addWidget(fields_widget)        # index 1
+        self._detail_stack.setCurrentIndex(0)
+
+        right_layout.addLayout(self._detail_stack, stretch=1)
         layout.addWidget(right_panel, stretch=1)
 
         return page
@@ -531,39 +617,59 @@ class MainWindow(FluentWindow):
         self._entry_list.addItem(item)
         card = EntryCardWidget(entry)
         self._entry_list.setItemWidget(item, card)
+        self._card_widgets[entry.id] = card
 
     def _entry_card_size_hint(self):
         """卡片尺寸"""
         from PyQt5.QtCore import QSize
-        return QSize(200, 56)
+        return QSize(200, 60)
 
     def _load_entries(self):
         self._entry_list.clear()
+        self._card_widgets.clear()
+        self._current_entry = None
         if self._current_group:
             self._entries = self._db.get_entries_by_group(self._current_group)
         else:
             self._entries = self._db.get_all_entries()
         for entry in self._entries:
             self._add_list_item(entry)
+        self._clear_detail()
 
     def _on_search(self, text: str):
+        """搜索（带防抖）"""
+        self._search_debounce.start(300)
+
+    def _do_search(self):
+        """执行搜索"""
+        text = self._search_input.text()
         if not text.strip():
             self._load_entries()
             return
         self._entry_list.clear()
+        self._card_widgets.clear()
+        self._current_entry = None
         results = self._db.search_entries(text.strip())
         if self._current_group:
             results = [e for e in results if e.group == self._current_group]
         self._entries = results
         for entry in self._entries:
             self._add_list_item(entry)
+        self._clear_detail()
+
+    def _update_card_selection(self, selected_id: str):
+        """更新卡片选中态"""
+        for entry_id, card in self._card_widgets.items():
+            card._update_style(selected=(entry_id == selected_id))
 
     def _on_entry_selected(self, current, _previous):
         if current is None:
+            self._update_card_selection("")
             self._clear_detail()
             return
         entry_id = current.data(Qt.UserRole)
         self._current_entry = self._db.get_entry(entry_id)
+        self._update_card_selection(entry_id)
         if self._current_entry:
             self._show_detail(self._current_entry)
 
@@ -661,6 +767,7 @@ class MainWindow(FluentWindow):
                 self._password_value.setText("•" * len(self._current_entry.password))
 
     def _show_detail(self, entry: Entry):
+        self._detail_stack.setCurrentIndex(1)  # 显示字段详情
         # 头像
         ch = _first_char(entry.title)
         color = _avatar_color(entry.title)
@@ -707,6 +814,7 @@ class MainWindow(FluentWindow):
 
     def _clear_detail(self):
         self._current_entry = None
+        self._detail_stack.setCurrentIndex(0)  # 显示空状态
         self._detail_avatar.setText("?")
         self._detail_avatar.setStyleSheet("""
             QLabel {
