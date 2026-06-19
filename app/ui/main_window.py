@@ -318,35 +318,34 @@ class MainWindow(QMainWindow):
             _popup = None
 
             def showPopup(self):
-                # 关闭旧 popup
                 if self._popup:
                     self._popup.close()
                     self._popup = None
 
-                # 创建自定义 popup
                 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
+                from PyQt5.QtGui import QRegion, QPainterPath
+
                 popup = QWidget(None, Qt.Popup | Qt.FramelessWindowHint)
-                popup.setAttribute(Qt.WA_TranslucentBackground)
                 self._popup = popup
 
                 layout = QVBoxLayout(popup)
                 layout.setContentsMargins(0, 0, 0, 0)
 
-                # 圆角容器
-                container = QWidget()
-                container.setStyleSheet("""
-                    background: white;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 8px;
-                """)
-                container_layout = QVBoxLayout(container)
-                container_layout.setContentsMargins(4, 4, 4, 4)
-
-                # 列表
                 listw = QListWidget()
                 listw.setStyleSheet("""
-                    QListWidget { background: transparent; border: none; outline: none; }
-                    QListWidget::item { height: 40px; padding: 0 14px; border-radius: 6px; margin: 2px; }
+                    QListWidget {
+                        background: white;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 8px;
+                        padding: 4px;
+                        outline: none;
+                    }
+                    QListWidget::item {
+                        height: 40px;
+                        padding: 0 14px;
+                        border-radius: 6px;
+                        margin: 2px 4px;
+                    }
                     QListWidget::item:selected { background: #e8f0fe; color: #0078d4; }
                     QListWidget::item:hover { background: #f5f5f5; }
                 """)
@@ -364,15 +363,20 @@ class MainWindow(QMainWindow):
                     popup.close()
 
                 listw.itemClicked.connect(on_select)
+                layout.addWidget(listw)
 
-                container_layout.addWidget(listw)
-                layout.addWidget(container)
+                # 计算尺寸
+                h = min(listw.sizeHintForRow(0) * self.count() + 12, 300)
+                w = self.width()
+                popup.setFixedSize(w, h)
 
-                # 定位到 combo 下方
+                # 圆形裁剪 mask
+                path = QPainterPath()
+                path.addRoundedRect(0, 0, w, h, 8, 8)
+                popup.setMask(QRegion(path.toFillPolygon().toPolygon()))
+
                 pos = self.mapToGlobal(self.rect().bottomLeft())
                 popup.move(pos.x(), pos.y() + 2)
-                popup.setFixedWidth(self.width())
-                popup.setFixedHeight(min(listw.sizeHintForRow(0) * self.count() + 16, 300))
                 popup.show()
 
         self._group_combo = AutoWidthCombo()
