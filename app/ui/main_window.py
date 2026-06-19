@@ -87,18 +87,19 @@ def _avatar_color(text: str) -> str:
 
 
 def _toast(parent, message, level="info"):
-    """右上角自动消失的通知"""
+    """右侧与标题同行的通知"""
     colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
     bg = colors.get(level, "#323232")
 
     label = QLabel(parent)
     label.setText(f" {message} ")
-    label.setFont(QFont("Microsoft YaHei", 10))
+    label.setFont(QFont("Microsoft YaHei", 11))
     label.adjustSize()
-    label.setFixedHeight(30)
-    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 4px; }}")
+    label.setFixedHeight(34)
+    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 6px; }}")
 
-    label.move(parent.width() - label.width() - 16, 12)
+    # 与右侧详情标题同行（大约 y=28）
+    label.move(parent.width() - label.width() - 20, 28)
     label.raise_()
     label.show()
 
