@@ -309,8 +309,7 @@ class LoginWindow(QWidget):
         from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout
 
         dialog = QDialog(self)
-        dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        dialog.setAttribute(Qt.WA_TranslucentBackground)
+        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setFixedSize(DIALOG_WIDTH, 440)
 
         outer = QVBoxLayout(dialog)
