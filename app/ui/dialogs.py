@@ -33,6 +33,8 @@ class AddEditDialog(QDialog):
         self._entry = entry
         self._is_edit = entry is not None
         self._groups = groups or []
+        if parent:
+            self.setWindowIcon(parent.windowIcon())
         self._setup_ui()
 
     def _setup_ui(self):

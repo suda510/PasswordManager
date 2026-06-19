@@ -351,6 +351,7 @@ class MainWindow(FluentWindow):
         dialog = QDialog(self)
         dialog.setWindowTitle("管理分组")
         dialog.setFixedSize(360, 420)
+        dialog.setWindowIcon(self.windowIcon())
 
         layout = QVBoxLayout(dialog)
         layout.setSpacing(12)
@@ -786,6 +787,7 @@ class MainWindow(FluentWindow):
         verify_dialog = QDialog(self)
         verify_dialog.setWindowTitle("身份验证")
         verify_dialog.setFixedWidth(380)
+        verify_dialog.setWindowIcon(self.windowIcon())
 
         vlayout = QVBoxLayout(verify_dialog)
         vlayout.setSpacing(14)
@@ -880,6 +882,7 @@ class MainWindow(FluentWindow):
 
         dialog = QDialog(self)
         dialog.setWindowTitle("修改主密码")
+        dialog.setWindowIcon(self.windowIcon())
         dialog.setFixedSize(440, 350)
 
         layout = QVBoxLayout(dialog)
@@ -981,6 +984,7 @@ class MainWindow(FluentWindow):
         dialog = QDialog(self)
         dialog.setWindowTitle("关于")
         dialog.setFixedSize(360, 300)
+        dialog.setWindowIcon(self.windowIcon())
 
         layout = QVBoxLayout(dialog)
         layout.setSpacing(12)
