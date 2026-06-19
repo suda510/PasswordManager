@@ -1133,10 +1133,18 @@ class MainWindow(FluentWindow):
 
         save_btn.clicked.connect(on_save)
 
-        # 用 QTimer 延迟触发 logout，确保对话框完全关闭后再执行
-        from PyQt5.QtCore import QTimer
-        if dialog.exec_() == QDialog.Accepted:
-            QTimer.singleShot(100, self.logout.emit)
+        # 标志位：on_save 中 accept 时置为 True
+        accepted = [False]
+        _orig_accept = dialog.accept
+        def _mark_accept():
+            accepted[0] = True
+            _orig_accept()
+        dialog.accept = _mark_accept
+
+        dialog.exec_()
+
+        if accepted[0]:
+            self.logout.emit()
 
     def _on_about(self):
         """关于对话框"""

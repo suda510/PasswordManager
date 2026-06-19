@@ -54,9 +54,6 @@ def main():
                 """修改密码后重新登录"""
                 main_window.close()
                 db.close()
-                nonlocal config
-                config.close()
-                config = ConfigManager()
                 create_login_window()
 
             main_window.logout.connect(on_logout)
