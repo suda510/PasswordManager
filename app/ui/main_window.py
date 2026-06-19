@@ -576,51 +576,59 @@ class MainWindow(QMainWindow):
         return right_panel
 
     def _setup_toolbar(self):
-        """创建底部工具栏"""
-        toolbar = QToolBar()
-        toolbar.setMovable(False)
-        toolbar.setStyleSheet("""
-            QToolBar {
+        """创建底部按钮栏（卡片式）"""
+        # 底部容器
+        bottom = QWidget()
+        bottom.setStyleSheet("background: #f5f5f5;")
+        bottom_layout = QHBoxLayout(bottom)
+        bottom_layout.setContentsMargins(20, 12, 20, 12)
+
+        # 卡片容器
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
                 background: white;
-                border-top: 1px solid #e8e8e8;
-                padding: 4px 12px;
-                spacing: 8px;
+                border: 1px solid #e0e0e0;
+                border-radius: 10px;
             }
-            QToolButton {
+        """)
+        card_layout = QHBoxLayout(card)
+        card_layout.setContentsMargins(8, 8, 8, 8)
+        card_layout.setSpacing(4)
+
+        # 按钮样式
+        btn_style = """
+            QPushButton {
                 background: transparent;
                 border: none;
-                border-radius: 6px;
-                padding: 6px 16px;
+                border-radius: 8px;
+                padding: 10px 20px;
                 font-family: "Microsoft YaHei";
                 font-size: 13px;
                 color: #1a1a1a;
             }
-            QToolButton:hover {
+            QPushButton:hover {
                 background: #f0f0f0;
             }
-        """)
-        self.addToolBar(Qt.BottomToolBarArea, toolbar)
+        """
 
-        # 添加弹性空间
-        spacer = QWidget()
-        spacer.setSizePolicy(1, 1)
-        toolbar.addWidget(spacer)
+        for text, handler in [
+            ("导出数据", self._on_export),
+            ("修改主密码", self._on_change_password),
+            ("关于", self._on_about),
+            ("锁定", self._on_lock),
+        ]:
+            btn = QPushButton(text)
+            btn.setStyleSheet(btn_style)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(handler)
+            card_layout.addWidget(btn)
 
-        # 导出
-        export_action = toolbar.addAction("导出数据")
-        export_action.triggered.connect(self._on_export)
+        bottom_layout.addStretch()
+        bottom_layout.addWidget(card)
+        bottom_layout.addStretch()
 
-        # 修改密码
-        change_pwd_action = toolbar.addAction("修改主密码")
-        change_pwd_action.triggered.connect(self._on_change_password)
-
-        # 关于
-        about_action = toolbar.addAction("关于")
-        about_action.triggered.connect(self._on_about)
-
-        # 锁定
-        lock_action = toolbar.addAction("锁定")
-        lock_action.triggered.connect(self._on_lock)
+        self.setMenuWidget(bottom)
 
     # ── 分组管理 ──
 
