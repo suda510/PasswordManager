@@ -8,7 +8,9 @@ a = Analysis(
     ['app/main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('assets', 'assets'),
+    ],
     hiddenimports=[
         'PyQt5.QtWidgets',
         'PyQt5.QtCore',

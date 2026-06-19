@@ -207,23 +207,44 @@ def create_eye_icon(is_open=True) -> QIcon:
     """眼睛图标"""
     def draw(p, s):
         cx, cy = s / 2, s / 2
-        pen = QPen(QColor("#888"), s * 0.07)
+        pen = QPen(QColor("#999"), s * 0.08)
         pen.setCapStyle(Qt.RoundCap)
         p.setPen(pen)
         p.setBrush(Qt.NoBrush)
-        rx, ry = s * 0.38, s * 0.22
-        p.drawEllipse(int(cx - rx), int(cy - ry), int(rx * 2), int(ry * 2))
-        p.setBrush(QColor("#888"))
+        # 眼睛轮廓
+        path = QPainterPath()
+        path.moveTo(s * 0.1, cy)
+        path.cubicTo(s * 0.3, cy - s * 0.3, s * 0.7, cy - s * 0.3, s * 0.9, cy)
+        path.cubicTo(s * 0.7, cy + s * 0.3, s * 0.3, cy + s * 0.3, s * 0.1, cy)
+        p.drawPath(path)
+        # 瞳孔
+        p.setBrush(QColor("#999"))
         p.setPen(Qt.NoPen)
-        r = s * 0.1
+        r = s * 0.12
         p.drawEllipse(int(cx - r), int(cy - r), int(r * 2), int(r * 2))
         if not is_open:
-            pen = QPen(QColor("#888"), s * 0.09)
+            pen = QPen(QColor("#999"), s * 0.1)
             pen.setCapStyle(Qt.RoundCap)
             p.setPen(pen)
-            p.drawLine(int(s * 0.18), int(s * 0.82), int(s * 0.82), int(s * 0.18))
+            p.drawLine(int(s * 0.15), int(s * 0.85), int(s * 0.85), int(s * 0.15))
 
     icon = QIcon()
     for sz in (16, 20, 24):
+        icon.addPixmap(_draw_icon(draw, sz))
+    return icon
+
+
+def create_arrow_icon() -> QIcon:
+    """下拉箭头图标"""
+    def draw(p, s):
+        cx = s / 2
+        pen = QPen(QColor("#999"), max(1, s * 0.12))
+        pen.setCapStyle(Qt.RoundCap)
+        p.setPen(pen)
+        p.drawLine(int(s * 0.28), int(s * 0.35), int(cx), int(s * 0.62))
+        p.drawLine(int(cx), int(s * 0.62), int(s * 0.72), int(s * 0.35))
+
+    icon = QIcon()
+    for sz in (12, 16, 20):
         icon.addPixmap(_draw_icon(draw, sz))
     return icon
