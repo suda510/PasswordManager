@@ -172,3 +172,58 @@ def create_app_icon() -> QIcon:
     for size in (16, 24, 32, 48, 64, 128, 256):
         icon.addPixmap(_create_icon_pixmap(size))
     return icon
+
+
+def _draw_icon(draw_func, size=16) -> QPixmap:
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+    p = QPainter(pixmap)
+    p.setRenderHint(QPainter.Antialiasing)
+    draw_func(p, size)
+    p.end()
+    return pixmap
+
+
+def create_copy_icon() -> QIcon:
+    """复制图标"""
+    def draw(p, s):
+        pen = QPen(QColor("#888"), s * 0.1)
+        pen.setCapStyle(Qt.RoundCap)
+        pen.setJoinStyle(Qt.RoundJoin)
+        p.setPen(pen)
+        p.setBrush(Qt.NoBrush)
+        r = int(s * 0.15)
+        p.drawRoundedRect(int(s * 0.32), int(s * 0.12), int(s * 0.52), int(s * 0.52), r, r)
+        p.setBrush(QColor("#f5f5f5"))
+        p.drawRoundedRect(int(s * 0.16), int(s * 0.36), int(s * 0.52), int(s * 0.52), r, r)
+
+    icon = QIcon()
+    for sz in (16, 20, 24):
+        icon.addPixmap(_draw_icon(draw, sz))
+    return icon
+
+
+def create_eye_icon(is_open=True) -> QIcon:
+    """眼睛图标"""
+    def draw(p, s):
+        cx, cy = s / 2, s / 2
+        pen = QPen(QColor("#888"), s * 0.07)
+        pen.setCapStyle(Qt.RoundCap)
+        p.setPen(pen)
+        p.setBrush(Qt.NoBrush)
+        rx, ry = s * 0.38, s * 0.22
+        p.drawEllipse(int(cx - rx), int(cy - ry), int(rx * 2), int(ry * 2))
+        p.setBrush(QColor("#888"))
+        p.setPen(Qt.NoPen)
+        r = s * 0.1
+        p.drawEllipse(int(cx - r), int(cy - r), int(r * 2), int(r * 2))
+        if not is_open:
+            pen = QPen(QColor("#888"), s * 0.09)
+            pen.setCapStyle(Qt.RoundCap)
+            p.setPen(pen)
+            p.drawLine(int(s * 0.18), int(s * 0.82), int(s * 0.82), int(s * 0.18))
+
+    icon = QIcon()
+    for sz in (16, 20, 24):
+        icon.addPixmap(_draw_icon(draw, sz))
+    return icon

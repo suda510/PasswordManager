@@ -1,4 +1,4 @@
-"""主密码登录窗口
+"""主密码登录窗口（纯原生 PyQt5）
 
 首次运行：设置主密码 + 生成恢复密钥
 后续运行：输入主密码解锁 / 忘记密码恢复
@@ -10,20 +10,12 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QLineEdit,
     QDialog,
+    QMessageBox,
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QMouseEvent
-
-from qfluentwidgets import (
-    LineEdit,
-    PasswordLineEdit,
-    PrimaryPushButton,
-    PushButton,
-    CaptionLabel,
-    InfoBar,
-    InfoBarPosition,
-)
 
 from app.core.crypto import (
     generate_salt,
@@ -38,15 +30,15 @@ from app.core.crypto import (
 from app.core.config_manager import ConfigManager
 from app.ui.styles import (
     CARD_STYLE,
-    TITLE_STYLE,
-    SUBTITLE_STYLE,
     CLOSE_BTN_STYLE,
     LINK_BTN_STYLE,
+    BTN_STYLE,
+    PRIMARY_BTN_STYLE,
+    INPUT_STYLE,
     INPUT_MIN_HEIGHT,
     BTN_MIN_HEIGHT,
     DIALOG_WIDTH,
     PRIMARY_COLOR,
-    TEXT_MUTED,
 )
 
 
@@ -100,29 +92,25 @@ class RecoveryKeyDialog(QDialog):
         layout.addWidget(key_label)
 
         # 复制按钮
-        copy_btn = PushButton("复制到剪贴板")
+        copy_btn = QPushButton("复制到剪贴板")
         copy_btn.setFixedHeight(BTN_MIN_HEIGHT)
         copy_btn.setCursor(Qt.PointingHandCursor)
+        copy_btn.setStyleSheet(BTN_STYLE)
         copy_btn.clicked.connect(self._copy_key)
         layout.addWidget(copy_btn, alignment=Qt.AlignCenter)
 
         # 确认按钮
-        ok_btn = PrimaryPushButton("我已保存，继续")
+        ok_btn = QPushButton("我已保存，继续")
         ok_btn.setFixedHeight(BTN_MIN_HEIGHT)
         ok_btn.setCursor(Qt.PointingHandCursor)
+        ok_btn.setStyleSheet(PRIMARY_BTN_STYLE)
         ok_btn.clicked.connect(self.accept)
         layout.addWidget(ok_btn)
 
     def _copy_key(self):
         from app.utils.clipboard import copy_to_clipboard
         copy_to_clipboard(self._recovery_key)
-        InfoBar.success(
-            title="成功",
-            content="恢复密钥已复制到剪贴板",
-            position=InfoBarPosition.TOP,
-            duration=2000,
-            parent=self,
-        )
+        QMessageBox.information(self, "成功", "恢复密钥已复制到剪贴板")
 
 
 class ForgotPasswordDialog(QDialog):
@@ -137,6 +125,7 @@ class ForgotPasswordDialog(QDialog):
     def _setup_ui(self):
         self.setWindowTitle("忘记密码")
         self.setFixedSize(DIALOG_WIDTH, 420)
+        self.setStyleSheet(INPUT_STYLE)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(14)
@@ -151,26 +140,29 @@ class ForgotPasswordDialog(QDialog):
 
         # 方式1：恢复密钥
         section1 = QLabel("方式一：使用恢复密钥重置密码")
-        section1.setStyleSheet(f"font-weight: 600; color: #333; font-size: 13px; background: transparent; margin-top: 8px;")
+        section1.setStyleSheet("font-weight: 600; color: #333; font-size: 13px; background: transparent; margin-top: 8px;")
         layout.addWidget(section1)
 
-        self._recovery_input = LineEdit()
+        self._recovery_input = QLineEdit()
         self._recovery_input.setPlaceholderText("输入恢复密钥 (如: ABCD-1234-EFGH-5678)")
         self._recovery_input.setFixedHeight(INPUT_MIN_HEIGHT)
         layout.addWidget(self._recovery_input)
 
-        self._new_password_input = PasswordLineEdit()
+        self._new_password_input = QLineEdit()
+        self._new_password_input.setEchoMode(QLineEdit.Password)
         self._new_password_input.setPlaceholderText("设置新主密码")
         self._new_password_input.setFixedHeight(INPUT_MIN_HEIGHT)
         layout.addWidget(self._new_password_input)
 
-        self._confirm_password_input = PasswordLineEdit()
+        self._confirm_password_input = QLineEdit()
+        self._confirm_password_input.setEchoMode(QLineEdit.Password)
         self._confirm_password_input.setPlaceholderText("确认新主密码")
         self._confirm_password_input.setFixedHeight(INPUT_MIN_HEIGHT)
         layout.addWidget(self._confirm_password_input)
 
-        reset_btn = PrimaryPushButton("重置密码")
+        reset_btn = QPushButton("重置密码")
         reset_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        reset_btn.setStyleSheet(PRIMARY_BTN_STYLE)
         reset_btn.clicked.connect(self._on_reset)
         layout.addWidget(reset_btn)
 
@@ -181,16 +173,16 @@ class ForgotPasswordDialog(QDialog):
         layout.addWidget(separator)
 
         # 方式2：查看密码提示
-        hint_btn = PushButton("查看密码提示")
+        hint_btn = QPushButton("查看密码提示")
         hint_btn.setFixedHeight(BTN_MIN_HEIGHT)
         hint_btn.setStyleSheet(LINK_BTN_STYLE)
         hint_btn.clicked.connect(self._show_hint)
         layout.addWidget(hint_btn, alignment=Qt.AlignCenter)
 
         # 方式3：清除数据重新开始
-        danger_btn = PushButton("清除所有数据，重新开始")
+        danger_btn = QPushButton("清除所有数据，重新开始")
         danger_btn.setFixedHeight(BTN_MIN_HEIGHT)
-        danger_btn.setStyleSheet(f"color: #e81123; border: none; background: transparent; font-size: 13px;")
+        danger_btn.setStyleSheet("color: #e81123; border: none; background: transparent; font-size: 13px;")
         danger_btn.clicked.connect(self._on_reset_all)
         layout.addWidget(danger_btn, alignment=Qt.AlignCenter)
 
@@ -201,35 +193,34 @@ class ForgotPasswordDialog(QDialog):
         confirm = self._confirm_password_input.text()
 
         if not recovery_key:
-            InfoBar.warning(title="提示", content="请输入恢复密钥", position=InfoBarPosition.TOP, duration=2000, parent=self)
+            QMessageBox.warning(self, "提示", "请输入恢复密钥")
             return
 
         if len(new_password) < 6:
-            InfoBar.warning(title="提示", content="新密码至少 6 个字符", position=InfoBarPosition.TOP, duration=2000, parent=self)
+            QMessageBox.warning(self, "提示", "新密码至少 6 个字符")
             return
 
         if new_password != confirm:
-            InfoBar.warning(title="提示", content="两次输入的密码不一致", position=InfoBarPosition.TOP, duration=2000, parent=self)
+            QMessageBox.warning(self, "提示", "两次输入的密码不一致")
             return
 
         stored_hash = self._config.get("recovery_key_hash")
         if not stored_hash:
-            InfoBar.error(title="错误", content="未设置恢复密钥", position=InfoBarPosition.TOP, duration=2000, parent=self)
+            QMessageBox.critical(self, "错误", "未设置恢复密钥")
             return
 
         try:
             salt = self._config.get_salt()
             iterations = self._config.get_iterations()
         except ValueError as e:
-            InfoBar.error(title="错误", content=str(e), position=InfoBarPosition.TOP, duration=2000, parent=self)
+            QMessageBox.critical(self, "错误", str(e))
             return
 
         if not verify_recovery_key(recovery_key, salt, stored_hash, iterations):
-            InfoBar.error(title="错误", content="恢复密钥错误", position=InfoBarPosition.TOP, duration=2000, parent=self)
+            QMessageBox.critical(self, "错误", "恢复密钥错误")
             return
 
         # 警告：重置密码后旧数据将无法解密
-        from PyQt5.QtWidgets import QMessageBox
         warn = QMessageBox.warning(
             self, "警告",
             "重置主密码后，之前保存的所有密码数据将无法解密。\n\n"
@@ -255,18 +246,17 @@ class ForgotPasswordDialog(QDialog):
         self._new_key = new_key
         self._new_recovery = new_recovery
 
-        InfoBar.success(title="成功", content="密码已重置", position=InfoBarPosition.TOP, duration=2000, parent=self)
+        QMessageBox.information(self, "成功", "密码已重置")
         self.accept()
 
     def _show_hint(self):
         hint = self._config.get("password_hint")
         if hint:
-            InfoBar.info(title="密码提示", content=hint, position=InfoBarPosition.TOP, duration=5000, parent=self)
+            QMessageBox.information(self, "密码提示", hint)
         else:
-            InfoBar.warning(title="提示", content="未设置密码提示", position=InfoBarPosition.TOP, duration=2000, parent=self)
+            QMessageBox.warning(self, "提示", "未设置密码提示")
 
     def _on_reset_all(self):
-        from PyQt5.QtWidgets import QMessageBox
         reply = QMessageBox.warning(
             self,
             "确认清除",
@@ -314,10 +304,14 @@ class LoginWindow(QWidget):
         self._drag_pos = None
         event.accept()
 
+    def _show_info(self, message: str):
+        QMessageBox.information(self, "成功", message)
+
+    def _show_error(self, message: str):
+        QMessageBox.critical(self, "错误", message)
+
     def _show_welcome(self):
         """首次使用弹出欢迎提示"""
-        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout
-
         dialog = QDialog(self)
         dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setFixedSize(DIALOG_WIDTH, 440)
@@ -335,7 +329,7 @@ class LoginWindow(QWidget):
         layout.setContentsMargins(36, 32, 36, 32)
 
         # 标题
-        icon = QLabel("🔐")
+        icon = QLabel("\U0001f510")
         icon.setFont(QFont("Microsoft YaHei", 36))
         icon.setAlignment(Qt.AlignCenter)
         icon.setStyleSheet("background: transparent; border: none;")
@@ -351,9 +345,9 @@ class LoginWindow(QWidget):
 
         # 特性说明
         features = [
-            ("📴", "完全离线", "不联网，不上传任何数据"),
-            ("💾", "仅存本地", "数据保存在你的电脑上"),
-            ("🔒", "AES-256 加密", "密码高强度加密存储"),
+            ("\U0001f4f4", "完全离线", "不联网，不上传任何数据"),
+            ("\U0001f4be", "仅存本地", "数据保存在你的电脑上"),
+            ("\U0001f512", "AES-256 加密", "密码高强度加密存储"),
         ]
 
         for emoji, title_text, desc_text in features:
@@ -386,9 +380,10 @@ class LoginWindow(QWidget):
         layout.addSpacing(8)
 
         # 开始按钮
-        start_btn = PrimaryPushButton("开始使用")
+        start_btn = QPushButton("开始使用")
         start_btn.setFixedHeight(BTN_MIN_HEIGHT)
         start_btn.setCursor(Qt.PointingHandCursor)
+        start_btn.setStyleSheet(PRIMARY_BTN_STYLE)
         start_btn.clicked.connect(dialog.accept)
         layout.addWidget(start_btn)
 
@@ -451,33 +446,39 @@ class LoginWindow(QWidget):
 
         # 提示文字
         subtitle_text = "首次使用，请设置主密码" if self._is_first_run else "请输入主密码解锁"
-        subtitle = CaptionLabel(subtitle_text)
+        subtitle = QLabel(subtitle_text)
         subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet(SUBTITLE_STYLE)
+        subtitle.setFont(QFont("Microsoft YaHei", 10))
+        subtitle.setStyleSheet("color: #999; background: transparent; border: none;")
         layout.addWidget(subtitle)
 
         layout.addSpacing(4)
 
         # 密码输入框
-        self._password_input = PasswordLineEdit()
+        self._password_input = QLineEdit()
+        self._password_input.setEchoMode(QLineEdit.Password)
         self._password_input.setPlaceholderText("输入主密码")
         self._password_input.setFixedHeight(INPUT_MIN_HEIGHT)
+        self._password_input.setStyleSheet(INPUT_STYLE)
         self._password_input.returnPressed.connect(self._on_submit)
         layout.addWidget(self._password_input)
 
         # 确认密码输入框
-        self._confirm_input = PasswordLineEdit()
+        self._confirm_input = QLineEdit()
+        self._confirm_input.setEchoMode(QLineEdit.Password)
         self._confirm_input.setPlaceholderText("确认主密码")
         self._confirm_input.setFixedHeight(INPUT_MIN_HEIGHT)
+        self._confirm_input.setStyleSheet(INPUT_STYLE)
         self._confirm_input.returnPressed.connect(self._on_submit)
         if not self._is_first_run:
             self._confirm_input.hide()
         layout.addWidget(self._confirm_input)
 
         # 密码提示
-        self._hint_input = LineEdit()
+        self._hint_input = QLineEdit()
         self._hint_input.setPlaceholderText("设置密码提示（可选）")
         self._hint_input.setFixedHeight(INPUT_MIN_HEIGHT)
+        self._hint_input.setStyleSheet(INPUT_STYLE)
         if not self._is_first_run:
             self._hint_input.hide()
         else:
@@ -485,29 +486,19 @@ class LoginWindow(QWidget):
 
         # 提交按钮
         btn_text = "设置主密码" if self._is_first_run else "解锁"
-        self._submit_btn = PrimaryPushButton(btn_text)
+        self._submit_btn = QPushButton(btn_text)
         self._submit_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        self._submit_btn.setStyleSheet(PRIMARY_BTN_STYLE)
         self._submit_btn.clicked.connect(self._on_submit)
         layout.addWidget(self._submit_btn)
 
         # 忘记密码
         if not self._is_first_run:
-            forgot_btn = PushButton("忘记密码？")
+            forgot_btn = QPushButton("忘记密码？")
             forgot_btn.setCursor(Qt.PointingHandCursor)
             forgot_btn.setStyleSheet(LINK_BTN_STYLE)
             forgot_btn.clicked.connect(self._on_forgot)
             layout.addWidget(forgot_btn, alignment=Qt.AlignCenter)
-
-    def _show_error(self, message: str):
-        InfoBar.error(
-            title="错误",
-            content=message,
-            orient=Qt.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=3000,
-            parent=self,
-        )
 
     def _on_submit(self):
         password = self._password_input.text()
