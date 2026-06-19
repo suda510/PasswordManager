@@ -107,13 +107,19 @@ def _toast(parent, message, level="info"):
 
 def _confirm(parent, title, message):
     """自定义确认对话框，返回 True/False"""
-    dialog = QDialog(parent)
-    dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-    dialog.setFixedSize(380, 180)
+    dialog = QDialog(None)
+    dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint)
+    dialog.setFixedSize(400, 200)
     dialog.setWindowTitle(title)
-    dialog.setStyleSheet("QDialog { background: white; }")
+    dialog.setStyleSheet("""
+        QDialog { background: white; }
+        QLabel { color: #1a1a1a; background: transparent; }
+        QPushButton { border-radius: 6px; padding: 8px 20px; font-size: 13px; }
+    """)
     if parent:
-        dialog.setWindowIcon(parent.windowIcon())
+        px = parent.x() + (parent.width() - 400) // 2
+        py = parent.y() + (parent.height() - 200) // 2
+        dialog.move(px, py)
 
     layout = QVBoxLayout(dialog)
     layout.setSpacing(12)
@@ -322,9 +328,11 @@ class MainWindow(QMainWindow):
         self._group_combo = AutoWidthCombo()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
         self._group_combo.setStyleSheet(_get_combo_style())
-        # 下拉视图样式
+        # 下拉视图样式（popup 窗口去掉边框）
         self._group_combo.setItemDelegate(FixedHeightDelegate())
         self._group_combo.view().setStyleSheet(GROUP_LIST_STYLE)
+        # 设置 popup 窗口无边框
+        self._group_combo.view().window().setStyleSheet("background: white; border: none;")
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
