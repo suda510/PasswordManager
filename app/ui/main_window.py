@@ -1,37 +1,34 @@
-"""主界面窗口
+"""主界面窗口（纯原生 PyQt5）
 
-使用 QFluentWidgets 实现现代 Fluent Design 风格。
+使用 QMainWindow + QToolBar 实现现代风格。
 """
 
 import hashlib
 import html as html_mod
 
 from PyQt5.QtWidgets import (
+    QMainWindow,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QListWidget,
     QListWidgetItem,
     QFrame,
     QGraphicsDropShadowEffect,
+    QStackedLayout,
+    QToolBar,
+    QToolButton,
+    QComboBox,
+    QPushButton,
+    QAction,
+    QFileDialog,
+    QDialog,
+    QSizeGrip,
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve
-from PyQt5.QtGui import QFont, QColor
-
-from qfluentwidgets import (
-    FluentWindow,
-    NavigationItemPosition,
-    FluentIcon as FIF,
-    SearchLineEdit,
-    ListWidget,
-    PrimaryPushButton,
-    PushButton,
-    CardWidget,
-    InfoBar,
-    InfoBarPosition,
-    ComboBox,
-    ToolButton,
-)
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QSize
+from PyQt5.QtGui import QFont, QColor, QIcon
 
 from app.core.db import Database
 from app.core.models import Entry
@@ -43,13 +40,23 @@ from app.core.crypto import (
     verify_master_password,
     DEFAULT_ITERATIONS,
 )
-from app.ui.dialogs import AddEditDialog, DeleteConfirmDialog
+from app.ui.dialogs import AddEditDialog, confirm_delete
 from app.ui.styles import (
     LABEL_STYLE,
+    INPUT_STYLE,
+    COMBO_STYLE,
+    ICON_BTN_STYLE,
+    GROUP_LIST_STYLE,
+    PRIMARY_BTN_STYLE,
+    BTN_STYLE,
+    CARD_STYLE,
     INPUT_MIN_HEIGHT,
     BTN_MIN_HEIGHT,
+    PRIMARY_COLOR,
+    BG_PAGE,
 )
 from app.utils.clipboard import copy_to_clipboard
+from app.ui.icon_gen import create_copy_icon, create_eye_icon
 
 
 # ── 首字母头像配色 ──
@@ -64,6 +71,101 @@ def _avatar_color(text: str) -> str:
     """根据文本生成稳定的头像背景色"""
     idx = int(hashlib.md5(text.encode()).hexdigest(), 16) % len(AVATAR_COLORS)
     return AVATAR_COLORS[idx]
+
+
+class Toast(QWidget):
+    """右上角自动消失的通知"""
+
+    _active = []  # 防止被 GC 回收
+
+    def __init__(self, parent, message, duration=2500, level="info"):
+        super().__init__(parent)
+        Toast._active.append(self)
+
+        colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
+        bg = colors.get(level, "#323232")
+
+        self.setFixedSize(300, 44)
+        self.setStyleSheet(f"background: {bg}; border-radius: 8px; border: none;")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 0, 16, 0)
+        layout.setSpacing(8)
+
+        icon_text = {"info": "✓", "error": "✕", "warn": "!"}.get(level, "✓")
+        icon = QLabel(icon_text)
+        icon.setFont(QFont("Microsoft YaHei", 12, QFont.Bold))
+        icon.setStyleSheet("color: white; background: transparent; border: none;")
+        layout.addWidget(icon)
+
+        label = QLabel(message)
+        label.setFont(QFont("Microsoft YaHei", 11))
+        label.setStyleSheet("color: white; background: transparent; border: none;")
+        layout.addWidget(label, stretch=1)
+
+        # 定位到右上角
+        self.move(parent.width() - self.width() - 16, 16)
+        self.raise_()
+        self.show()
+
+        QTimer.singleShot(duration, self._close)
+
+    def _close(self):
+        if self in Toast._active:
+            Toast._active.remove(self)
+        self.close()
+        self.deleteLater()
+
+
+def _toast(parent, message, level="info"):
+    Toast(parent, message, level=level)
+
+
+def _confirm(parent, title, message):
+    """自定义确认对话框，返回 True/False"""
+    dialog = QDialog(parent)
+    dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+    dialog.setFixedSize(380, 180)
+    dialog.setWindowTitle(title)
+    if parent:
+        dialog.setWindowIcon(parent.windowIcon())
+
+    layout = QVBoxLayout(dialog)
+    layout.setSpacing(12)
+    layout.setContentsMargins(28, 20, 28, 20)
+
+    t = QLabel(title)
+    t.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
+    t.setStyleSheet("color: #1a1a1a; background: transparent;")
+    layout.addWidget(t)
+
+    m = QLabel(message)
+    m.setFont(QFont("Microsoft YaHei", 11))
+    m.setStyleSheet("color: #666; background: transparent;")
+    m.setWordWrap(True)
+    layout.addWidget(m)
+
+    layout.addStretch()
+
+    btn_row = QHBoxLayout()
+    btn_row.setSpacing(8)
+    btn_row.addStretch()
+
+    cancel = QPushButton("取消")
+    cancel.setStyleSheet(BTN_STYLE)
+    cancel.setFixedHeight(BTN_MIN_HEIGHT)
+    cancel.clicked.connect(dialog.reject)
+
+    ok = QPushButton("确定")
+    ok.setStyleSheet(PRIMARY_BTN_STYLE)
+    ok.setFixedHeight(BTN_MIN_HEIGHT)
+    ok.clicked.connect(dialog.accept)
+
+    btn_row.addWidget(cancel)
+    btn_row.addWidget(ok)
+    layout.addLayout(btn_row)
+
+    return dialog.exec_() == QDialog.Accepted
 
 
 def _first_char(text: str) -> str:
@@ -149,7 +251,7 @@ class EntryCardWidget(QFrame):
             """)
 
 
-class MainWindow(FluentWindow):
+class MainWindow(QMainWindow):
     """主窗口"""
 
     logout = pyqtSignal()
@@ -159,7 +261,7 @@ class MainWindow(FluentWindow):
         self._db = db
         self._config = config
         self._current_entry = None
-        self._card_widgets: dict[str, EntryCardWidget] = {}
+        self._card_widgets = {}
         self._password_visible = False
         self._search_debounce = QTimer()
         self._search_debounce.setSingleShot(True)
@@ -171,72 +273,86 @@ class MainWindow(FluentWindow):
         self.setWindowTitle("密码管理器")
         self.resize(960, 640)
         self.setMinimumSize(760, 480)
+        self.setStyleSheet(f"background: {BG_PAGE};")
 
-        # 隐藏返回按钮（只有一个页面，不需要）
-        self.navigationInterface.setReturnButtonVisible(False)
+        # 中央部件
+        central = QWidget()
+        self.setCentralWidget(central)
+        main_layout = QVBoxLayout(central)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        self._home_page = self._create_home_page()
-        self._home_page.setObjectName("homePage")
-        self.addSubInterface(self._home_page, FIF.HOME, "主页")
+        # 主内容区
+        content = QWidget()
+        content_layout = QHBoxLayout(content)
+        content_layout.setContentsMargins(20, 12, 20, 12)
+        content_layout.setSpacing(16)
 
-        # 底部导航
-        self.navigationInterface.addItem(
-            routeKey="export",
-            icon=FIF.SAVE,
-            text="导出数据",
-            onClick=self._on_export,
-            position=NavigationItemPosition.BOTTOM,
-        )
-        self.navigationInterface.addItem(
-            routeKey="changePassword",
-            icon=FIF.EDIT,
-            text="修改主密码",
-            onClick=self._on_change_password,
-            position=NavigationItemPosition.BOTTOM,
-        )
-        self.navigationInterface.addItem(
-            routeKey="about",
-            icon=FIF.INFO,
-            text="关于",
-            onClick=self._on_about,
-            position=NavigationItemPosition.BOTTOM,
-        )
-        self.navigationInterface.addItem(
-            routeKey="lock",
-            icon=FIF.POWER_BUTTON,
-            text="锁定",
-            onClick=self._on_lock,
-            position=NavigationItemPosition.BOTTOM,
-        )
+        # 左侧面板
+        left_panel = self._create_left_panel()
+        content_layout.addWidget(left_panel, stretch=1)
 
-    def _create_home_page(self) -> QWidget:
-        page = QWidget()
-        layout = QHBoxLayout(page)
-        layout.setContentsMargins(20, 12, 20, 20)
-        layout.setSpacing(16)
+        # 右侧面板
+        right_panel = self._create_right_panel()
+        content_layout.addWidget(right_panel, stretch=1)
 
-        # 左侧：搜索 + 分组下拉 + 列表 + 按钮
+        main_layout.addWidget(content, stretch=1)
+
+        # 底部工具栏
+        self._setup_toolbar()
+
+    def _create_left_panel(self) -> QWidget:
+        """创建左侧面板：搜索 + 分组 + 列表 + 按钮"""
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(12)
 
-        self._search_input = SearchLineEdit()
+        # 搜索框
+        self._search_input = QLineEdit()
         self._search_input.setPlaceholderText("搜索网站/软件名...")
+        self._search_input.setFixedHeight(INPUT_MIN_HEIGHT)
+        self._search_input.setStyleSheet(INPUT_STYLE)
         self._search_input.textChanged.connect(self._on_search)
         left_layout.addWidget(self._search_input)
 
         # 分组下拉框 + 管理按钮
         group_row = QHBoxLayout()
         group_row.setSpacing(8)
-        self._group_combo = ComboBox()
+        self._group_combo = QComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
-        self._group_combo.setPlaceholderText("全部分组")
+        self._group_combo.setStyleSheet(COMBO_STYLE)
+        # 设置下拉视图样式
+        view = self._group_combo.view()
+        view.setStyleSheet("""
+            QListView {
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                background: white;
+                outline: none;
+                padding: 4px;
+            }
+            QListView::item {
+                height: 40px;
+                padding: 0 14px;
+                border-radius: 6px;
+                margin: 2px 4px;
+            }
+            QListView::item:selected {
+                background: #e8f0fe;
+                color: #0078d4;
+                border-left: 3px solid #0078d4;
+            }
+            QListView::item:hover {
+                background: #f5f5f5;
+            }
+        """)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
-        group_manage_btn = PushButton("管理分组")
+        group_manage_btn = QPushButton("管理分组")
         group_manage_btn.setFixedHeight(INPUT_MIN_HEIGHT)
+        group_manage_btn.setStyleSheet(BTN_STYLE)
         group_manage_btn.clicked.connect(self._on_manage_groups)
         group_row.addWidget(group_manage_btn)
         left_layout.addLayout(group_row)
@@ -244,13 +360,12 @@ class MainWindow(FluentWindow):
         self._current_group = ""
         self._refresh_groups()
 
-        list_card = CardWidget()
-        list_card.setStyleSheet("""
-            CardWidget {
-                background: white;
-                border: 1px solid rgba(0,0,0,0.06);
-                border-radius: 10px;
-            }
+        # 列表卡片
+        list_card = QFrame()
+        list_card.setStyleSheet(f"""
+            QFrame {{
+                {CARD_STYLE}
+            }}
         """)
         list_shadow = QGraphicsDropShadowEffect()
         list_shadow.setBlurRadius(16)
@@ -260,7 +375,7 @@ class MainWindow(FluentWindow):
 
         list_layout = QVBoxLayout(list_card)
         list_layout.setContentsMargins(0, 0, 0, 0)
-        self._entry_list = ListWidget()
+        self._entry_list = QListWidget()
         self._entry_list.currentItemChanged.connect(self._on_entry_selected)
         self._entry_list.setStyleSheet("""
             QListWidget {
@@ -279,11 +394,15 @@ class MainWindow(FluentWindow):
         list_layout.addWidget(self._entry_list)
         left_layout.addWidget(list_card)
 
+        # 按钮行
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
-        self._add_btn = PrimaryPushButton("新增")
-        self._edit_btn = PushButton("编辑")
-        self._delete_btn = PushButton("删除")
+        self._add_btn = QPushButton("新增")
+        self._add_btn.setStyleSheet(PRIMARY_BTN_STYLE)
+        self._edit_btn = QPushButton("编辑")
+        self._edit_btn.setStyleSheet(BTN_STYLE)
+        self._delete_btn = QPushButton("删除")
+        self._delete_btn.setStyleSheet(BTN_STYLE)
         for btn in (self._add_btn, self._edit_btn, self._delete_btn):
             btn.setFixedHeight(BTN_MIN_HEIGHT)
         self._add_btn.clicked.connect(self._on_add)
@@ -294,22 +413,22 @@ class MainWindow(FluentWindow):
         btn_layout.addWidget(self._delete_btn)
         left_layout.addLayout(btn_layout)
 
-        layout.addWidget(left_panel, stretch=1)
+        return left_panel
 
-        # 右侧：详情卡片
-        right_panel = CardWidget()
-        right_panel.setStyleSheet("""
-            CardWidget {
-                background: white;
-                border: 1px solid rgba(0,0,0,0.06);
-                border-radius: 10px;
-            }
+    def _create_right_panel(self) -> QWidget:
+        """创建右侧面板：详情卡片"""
+        right_panel = QFrame()
+        right_panel.setStyleSheet(f"""
+            QFrame {{
+                {CARD_STYLE}
+            }}
         """)
         right_shadow = QGraphicsDropShadowEffect()
         right_shadow.setBlurRadius(16)
         right_shadow.setOffset(0, 2)
         right_shadow.setColor(QColor(0, 0, 0, 20))
         right_panel.setGraphicsEffect(right_shadow)
+
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
@@ -384,7 +503,7 @@ class MainWindow(FluentWindow):
         empty_layout.setAlignment(Qt.AlignCenter)
         empty_layout.setSpacing(12)
 
-        empty_icon = QLabel("🔒")
+        empty_icon = QLabel("\U0001f512")
         empty_icon.setFont(QFont("Microsoft YaHei", 40))
         empty_icon.setAlignment(Qt.AlignCenter)
         empty_icon.setStyleSheet("background: transparent; border: none;")
@@ -397,20 +516,64 @@ class MainWindow(FluentWindow):
         empty_layout.addWidget(empty_text)
 
         # 用 QStackedLayout 切换空状态和字段详情
-        from PyQt5.QtWidgets import QStackedLayout
         self._detail_stack = QStackedLayout()
         self._detail_stack.addWidget(self._empty_state)   # index 0
         self._detail_stack.addWidget(fields_widget)        # index 1
         self._detail_stack.setCurrentIndex(0)
 
         right_layout.addLayout(self._detail_stack, stretch=1)
-        layout.addWidget(right_panel, stretch=1)
+        return right_panel
 
-        return page
+    def _setup_toolbar(self):
+        """创建底部工具栏"""
+        toolbar = QToolBar()
+        toolbar.setMovable(False)
+        toolbar.setStyleSheet("""
+            QToolBar {
+                background: white;
+                border-top: 1px solid #e8e8e8;
+                padding: 4px 12px;
+                spacing: 8px;
+            }
+            QToolButton {
+                background: transparent;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 16px;
+                font-family: "Microsoft YaHei";
+                font-size: 13px;
+                color: #1a1a1a;
+            }
+            QToolButton:hover {
+                background: #f0f0f0;
+            }
+        """)
+        self.addToolBar(Qt.BottomToolBarArea, toolbar)
+
+        # 添加弹性空间
+        spacer = QWidget()
+        spacer.setSizePolicy(1, 1)
+        toolbar.addWidget(spacer)
+
+        # 导出
+        export_action = toolbar.addAction("导出数据")
+        export_action.triggered.connect(self._on_export)
+
+        # 修改密码
+        change_pwd_action = toolbar.addAction("修改主密码")
+        change_pwd_action.triggered.connect(self._on_change_password)
+
+        # 关于
+        about_action = toolbar.addAction("关于")
+        about_action.triggered.connect(self._on_about)
+
+        # 锁定
+        lock_action = toolbar.addAction("锁定")
+        lock_action.triggered.connect(self._on_lock)
 
     # ── 分组管理 ──
 
-    def _get_all_groups(self) -> list[str]:
+    def _get_all_groups(self) -> list:
         """获取所有分组（条目中使用的 + 自定义分组），去重排序"""
         db_groups = set(self._db.get_groups())
         custom_groups = set(self._config.get_custom_groups())
@@ -443,11 +606,6 @@ class MainWindow(FluentWindow):
 
     def _on_manage_groups(self):
         """打开分组管理对话框"""
-        from PyQt5.QtWidgets import (
-            QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-        )
-        from qfluentwidgets import LineEdit
-
         dialog = QDialog(self)
         dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setWindowTitle("管理分组")
@@ -466,47 +624,36 @@ class MainWindow(FluentWindow):
         # 新增分组输入
         add_row = QHBoxLayout()
         add_row.setSpacing(8)
-        new_group_input = LineEdit()
+        new_group_input = QLineEdit()
         new_group_input.setPlaceholderText("输入新分组名称")
         new_group_input.setFixedHeight(INPUT_MIN_HEIGHT)
+        new_group_input.setStyleSheet(INPUT_STYLE)
         add_row.addWidget(new_group_input, stretch=1)
 
-        add_btn = PrimaryPushButton("添加")
+        add_btn = QPushButton("添加")
         add_btn.setFixedHeight(INPUT_MIN_HEIGHT)
+        add_btn.setStyleSheet(PRIMARY_BTN_STYLE)
         add_row.addWidget(add_btn)
         layout.addLayout(add_row)
 
         # 分组列表
         group_list = QListWidget()
-        group_list.setStyleSheet("""
-            QListWidget {
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                background: white;
-            }
-            QListWidget::item {
-                padding: 6px 12px;
-                border-bottom: 1px solid #f0f0f0;
-            }
-            QListWidget::item:selected {
-                background: #e8f0fe;
-                color: #0078d4;
-            }
-        """)
+        group_list.setStyleSheet(GROUP_LIST_STYLE)
         layout.addWidget(group_list, stretch=1)
 
         # 底部按钮
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
 
-        rename_btn = PushButton("重命名")
+        rename_btn = QPushButton("重命名")
         rename_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        rename_btn.setStyleSheet(BTN_STYLE)
         rename_btn.setEnabled(False)
 
-        delete_btn = PushButton("删除分组")
+        delete_btn = QPushButton("删除分组")
         delete_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        delete_btn.setStyleSheet("color: #e81123; border: none; background: transparent; font-size: 13px;")
         delete_btn.setEnabled(False)
-        delete_btn.setStyleSheet("color: #e81123;")
 
         btn_row.addStretch()
         btn_row.addWidget(rename_btn)
@@ -539,15 +686,13 @@ class MainWindow(FluentWindow):
                 return
             all_groups = self._get_all_groups()
             if name in all_groups:
-                InfoBar.warning(title="提示", content="该分组已存在",
-                                position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                _toast(dialog, "该分组已存在", "warn")
                 return
             self._config.add_custom_group(name)
             new_group_input.clear()
             self._refresh_groups()
             refresh_list()
-            InfoBar.success(title="成功", content=f'分组 "{name}" 已创建',
-                            position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+            _toast(dialog, f'分组 "{name}" 已创建')
 
         add_btn.clicked.connect(on_add)
         new_group_input.returnPressed.connect(on_add)
@@ -557,46 +702,57 @@ class MainWindow(FluentWindow):
             if not item:
                 return
             old_name = item.data(Qt.UserRole)
-            new_name_line = LineEdit()
-            new_name_line.setText(old_name)
-            new_name_line.setFixedHeight(INPUT_MIN_HEIGHT)
 
-            rename_dialog = QDialog(dialog)
-            rename_dialog.setWindowFlags(rename_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-            rename_dialog.setWindowTitle("重命名分组")
-            rename_dialog.setFixedWidth(320)
-            rl = QVBoxLayout(rename_dialog)
-            rl.setSpacing(12)
-            rl.setContentsMargins(20, 16, 20, 16)
+            rn_dialog = QDialog(dialog)
+            rn_dialog.setWindowFlags(rn_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+            rn_dialog.setWindowTitle("重命名分组")
+            rn_dialog.setFixedSize(360, 180)
+            rn_dialog.setStyleSheet(INPUT_STYLE)
 
-            rl.addWidget(QLabel(f'重命名分组 "{old_name}"'))
-            rl.addWidget(new_name_line)
+            rn_layout = QVBoxLayout(rn_dialog)
+            rn_layout.setSpacing(12)
+            rn_layout.setContentsMargins(24, 20, 24, 20)
 
-            btns = QHBoxLayout()
-            btns.addStretch()
-            cancel = PushButton("取消")
-            confirm = PrimaryPushButton("确认")
-            cancel.clicked.connect(rename_dialog.reject)
-            confirm.clicked.connect(rename_dialog.accept)
-            btns.addWidget(cancel)
-            btns.addWidget(confirm)
-            rl.addLayout(btns)
+            rn_title = QLabel(f'重命名分组 "{old_name}"')
+            rn_title.setFont(QFont("Microsoft YaHei", 13, QFont.DemiBold))
+            rn_title.setStyleSheet("color: #1a1a1a; background: transparent;")
+            rn_layout.addWidget(rn_title)
 
-            if rename_dialog.exec_():
-                new_name = new_name_line.text().strip()
-                if not new_name or new_name == old_name:
-                    return
-                if new_name in self._get_all_groups():
-                    InfoBar.warning(title="提示", content="该分组名已存在",
-                                    position=InfoBarPosition.TOP, duration=2000, parent=dialog)
-                    return
-                self._db.rename_group(old_name, new_name)
-                self._config.rename_custom_group(old_name, new_name)
-                self._refresh_groups()
-                self._load_entries()
-                refresh_list()
-                InfoBar.success(title="成功", content=f'已重命名为 "{new_name}"',
-                                position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+            rn_input = QLineEdit()
+            rn_input.setText(old_name)
+            rn_input.setFixedHeight(INPUT_MIN_HEIGHT)
+            rn_layout.addWidget(rn_input)
+
+            rn_btn_row = QHBoxLayout()
+            rn_btn_row.setSpacing(8)
+            rn_btn_row.addStretch()
+            rn_cancel = QPushButton("取消")
+            rn_cancel.setStyleSheet(BTN_STYLE)
+            rn_cancel.setFixedHeight(BTN_MIN_HEIGHT)
+            rn_cancel.clicked.connect(rn_dialog.reject)
+            rn_ok = QPushButton("确定")
+            rn_ok.setStyleSheet(PRIMARY_BTN_STYLE)
+            rn_ok.setFixedHeight(BTN_MIN_HEIGHT)
+            rn_ok.clicked.connect(rn_dialog.accept)
+            rn_input.returnPressed.connect(rn_dialog.accept)
+            rn_btn_row.addWidget(rn_cancel)
+            rn_btn_row.addWidget(rn_ok)
+            rn_layout.addLayout(rn_btn_row)
+
+            if rn_dialog.exec_() != QDialog.Accepted:
+                return
+            new_name = rn_input.text().strip()
+            if not new_name or new_name == old_name:
+                return
+            if new_name in self._get_all_groups():
+                _toast(dialog, "该分组名已存在", "warn")
+                return
+            self._db.rename_group(old_name, new_name)
+            self._config.rename_custom_group(old_name, new_name)
+            self._refresh_groups()
+            self._load_entries()
+            refresh_list()
+            _toast(dialog, f'已重命名为 "{new_name}"')
 
         rename_btn.clicked.connect(on_rename)
 
@@ -605,20 +761,15 @@ class MainWindow(FluentWindow):
             if not item:
                 return
             group_name = item.data(Qt.UserRole)
-            from PyQt5.QtWidgets import QMessageBox
-            reply = QMessageBox.warning(
-                dialog, "确认删除",
-                f'删除分组 "{group_name}"？\n该分组下的条目将变为"未分组"。',
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-            )
-            if reply == QMessageBox.Yes:
+            reply = _confirm(dialog, "确认删除",
+                f'删除分组 "{group_name}"？\n该分组下的条目将变为"未分组"。')
+            if reply:
                 self._db.delete_group(group_name)
                 self._config.delete_custom_group(group_name)
                 self._refresh_groups()
                 self._load_entries()
                 refresh_list()
-                InfoBar.success(title="成功", content=f'分组 "{group_name}" 已删除',
-                                position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                _toast(dialog, f'分组 "{group_name}" 已删除')
 
         delete_btn.clicked.connect(on_delete)
 
@@ -630,16 +781,11 @@ class MainWindow(FluentWindow):
         """添加一个卡片式列表项"""
         item = QListWidgetItem()
         item.setData(Qt.UserRole, entry.id)
-        item.setSizeHint(self._entry_card_size_hint())
+        item.setSizeHint(QSize(200, 60))
         self._entry_list.addItem(item)
         card = EntryCardWidget(entry)
         self._entry_list.setItemWidget(item, card)
         self._card_widgets[entry.id] = card
-
-    def _entry_card_size_hint(self):
-        """卡片尺寸"""
-        from PyQt5.QtCore import QSize
-        return QSize(200, 60)
 
     def _load_entries(self):
         # 若搜索框有文本，走搜索逻辑
@@ -726,42 +872,24 @@ class MainWindow(FluentWindow):
 
         # 密码显隐切换
         if has_toggle:
-            toggle_btn = ToolButton()
+            toggle_btn = QToolButton()
             toggle_btn.setFixedSize(26, 26)
-            toggle_btn.setIcon(FIF.HIDE.icon())
+            toggle_btn.setIcon(create_eye_icon(True))
             toggle_btn.setToolTip("显示密码")
             toggle_btn.setCursor(Qt.PointingHandCursor)
-            toggle_btn.setStyleSheet("""
-                QToolButton {
-                    background: transparent;
-                    border: none;
-                    border-radius: 4px;
-                }
-                QToolButton:hover {
-                    background: #f0f0f0;
-                }
-            """)
+            toggle_btn.setStyleSheet(ICON_BTN_STYLE)
             toggle_btn.clicked.connect(lambda: self._toggle_password(toggle_btn))
             val_row.addWidget(toggle_btn, alignment=Qt.AlignVCenter)
             self._password_toggle_btn = toggle_btn
 
         # 复制按钮
         if copyable:
-            copy_btn = ToolButton()
+            copy_btn = QToolButton()
             copy_btn.setFixedSize(26, 26)
-            copy_btn.setIcon(FIF.COPY.icon())
+            copy_btn.setIcon(create_copy_icon())
             copy_btn.setToolTip("复制")
             copy_btn.setCursor(Qt.PointingHandCursor)
-            copy_btn.setStyleSheet("""
-                QToolButton {
-                    background: transparent;
-                    border: none;
-                    border-radius: 4px;
-                }
-                QToolButton:hover {
-                    background: #f0f0f0;
-                }
-            """)
+            copy_btn.setStyleSheet(ICON_BTN_STYLE)
             if field_name == "username":
                 copy_btn.clicked.connect(self._copy_username)
             elif field_name == "password":
@@ -772,16 +900,16 @@ class MainWindow(FluentWindow):
         block_layout.addLayout(val_row)
         return block
 
-    def _toggle_password(self, btn: ToolButton):
+    def _toggle_password(self, btn: QToolButton):
         """切换密码显隐"""
         self._password_visible = not self._password_visible
         if self._password_visible:
-            btn.setIcon(FIF.VIEW.icon())
+            btn.setIcon(create_eye_icon(False))
             btn.setToolTip("隐藏密码")
             if self._current_entry:
                 self._password_value.setText(self._current_entry.password)
         else:
-            btn.setIcon(FIF.HIDE.icon())
+            btn.setIcon(create_eye_icon(True))
             btn.setToolTip("显示密码")
             if self._current_entry:
                 self._password_value.setText("•" * len(self._current_entry.password))
@@ -809,7 +937,7 @@ class MainWindow(FluentWindow):
 
         # 密码（重置为隐藏状态）
         self._password_visible = False
-        self._password_toggle_btn.setIcon(FIF.HIDE.icon())
+        self._password_toggle_btn.setText("👁")
         self._password_value.setText("•" * len(entry.password) if entry.password else "（无）")
 
         # 网址（有内容才显示）
@@ -859,15 +987,7 @@ class MainWindow(FluentWindow):
     # ── 通用操作 ──
 
     def _show_info(self, message: str):
-        InfoBar.success(
-            title="成功",
-            content=message,
-            orient=Qt.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP_RIGHT,
-            duration=2000,
-            parent=self,
-        )
+        _toast(self, message)
 
     def _copy_username(self):
         if self._current_entry:
@@ -889,7 +1009,7 @@ class MainWindow(FluentWindow):
 
     def _on_edit(self):
         if not self._current_entry:
-            InfoBar.info(title="提示", content="请先选择一个条目", position=InfoBarPosition.TOP_RIGHT, duration=2000, parent=self)
+            _toast(self, "请先选择一个条目")
             return
         dialog = AddEditDialog(self, self._current_entry, groups=self._get_all_groups())
         if dialog.exec_():
@@ -900,10 +1020,9 @@ class MainWindow(FluentWindow):
 
     def _on_delete(self):
         if not self._current_entry:
-            InfoBar.info(title="提示", content="请先选择一个条目", position=InfoBarPosition.TOP_RIGHT, duration=2000, parent=self)
+            _toast(self, "请先选择一个条目")
             return
-        dialog = DeleteConfirmDialog(self._current_entry.title, self)
-        if dialog.exec_():
+        if confirm_delete(self._current_entry.title, self):
             self._db.delete_entry(self._current_entry.id)
             self._clear_detail()
             self._load_entries()
@@ -916,81 +1035,78 @@ class MainWindow(FluentWindow):
 
     def _on_export(self):
         """导出数据为 CSV"""
-        from PyQt5.QtWidgets import (
-            QDialog, QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox,
-        )
-        from qfluentwidgets import PasswordLineEdit
-
-        # ── 第一步：验证主密码 ──
+        # ── 第一步：验证主密码（自定义样式对话框） ──
         verify_dialog = QDialog(self)
         verify_dialog.setWindowFlags(verify_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         verify_dialog.setWindowTitle("身份验证")
-        verify_dialog.setFixedWidth(380)
+        verify_dialog.setFixedSize(380, 220)
         verify_dialog.setWindowIcon(self.windowIcon())
+        verify_dialog.setStyleSheet(INPUT_STYLE)
 
-        vlayout = QVBoxLayout(verify_dialog)
-        vlayout.setSpacing(14)
-        vlayout.setContentsMargins(28, 24, 28, 24)
+        vl = QVBoxLayout(verify_dialog)
+        vl.setSpacing(12)
+        vl.setContentsMargins(28, 24, 28, 24)
 
-        vtitle = QLabel("导出数据需要验证身份")
-        vtitle.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
-        vtitle.setStyleSheet("color: #1a1a1a; background: transparent;")
-        vlayout.addWidget(vtitle)
+        vt = QLabel("身份验证")
+        vt.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
+        vt.setStyleSheet("color: #1a1a1a; background: transparent;")
+        vl.addWidget(vt)
 
-        vhint = QLabel("请输入主密码以继续")
-        vhint.setFont(QFont("Microsoft YaHei", 11))
-        vhint.setStyleSheet("color: #666; background: transparent;")
-        vlayout.addWidget(vhint)
+        vh = QLabel("导出数据需要验证身份，请输入主密码")
+        vh.setFont(QFont("Microsoft YaHei", 11))
+        vh.setStyleSheet("color: #666; background: transparent;")
+        vl.addWidget(vh)
 
-        pwd_input = PasswordLineEdit()
+        pwd_input = QLineEdit()
         pwd_input.setPlaceholderText("输入主密码")
+        pwd_input.setEchoMode(QLineEdit.Password)
         pwd_input.setFixedHeight(INPUT_MIN_HEIGHT)
-        vlayout.addWidget(pwd_input)
+        vl.addWidget(pwd_input)
 
         vbtn_row = QHBoxLayout()
         vbtn_row.setSpacing(8)
         vbtn_row.addStretch()
-        vcancel = PushButton("取消")
-        vconfirm = PrimaryPushButton("验证")
+        vcancel = QPushButton("取消")
+        vcancel.setStyleSheet(BTN_STYLE)
         vcancel.setFixedHeight(BTN_MIN_HEIGHT)
-        vconfirm.setFixedHeight(BTN_MIN_HEIGHT)
         vcancel.clicked.connect(verify_dialog.reject)
-        vconfirm.clicked.connect(verify_dialog.accept)
-        vbtn_row.addWidget(vcancel)
-        vbtn_row.addWidget(vconfirm)
-        vlayout.addLayout(vbtn_row)
-
+        vok = QPushButton("验证")
+        vok.setStyleSheet(PRIMARY_BTN_STYLE)
+        vok.setFixedHeight(BTN_MIN_HEIGHT)
+        vok.clicked.connect(verify_dialog.accept)
         pwd_input.returnPressed.connect(verify_dialog.accept)
+        vbtn_row.addWidget(vcancel)
+        vbtn_row.addWidget(vok)
+        vl.addLayout(vbtn_row)
 
-        if not verify_dialog.exec_():
+        if verify_dialog.exec_() != QDialog.Accepted:
             return
 
         password = pwd_input.text()
+        if not password:
+            return
+
         stored_hash = self._config.get("master_password_hash")
         try:
             salt = self._config.get_salt()
             iterations = self._config.get_iterations()
         except ValueError as e:
-            InfoBar.error(title="错误", content=str(e), position=InfoBarPosition.TOP, duration=2000, parent=self)
+            _toast(self, str(e), "error")
             return
 
         if not verify_master_password(password, salt, stored_hash, iterations):
-            InfoBar.error(title="错误", content="主密码错误",
-                          position=InfoBarPosition.TOP, duration=2000, parent=self)
+            _toast(self, "主密码错误", "error")
             return
 
         # ── 第二步：安全警告确认 ──
-        reply = QMessageBox.warning(
+        reply = _confirm(
             self,
             "安全警告",
             "即将导出所有密码为明文 CSV 文件。\n\n"
-            "⚠️ 该文件包含所有账号密码的明文信息，\n"
-            "请妥善保管，使用后建议立即删除。\n\n"
-            "确定要继续吗？",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            "该文件包含所有账号密码的明文信息，\n"
+            "请妥善保管，使用后建议立即删除。",
         )
-        if reply != QMessageBox.Yes:
+        if not reply:
             return
 
         # ── 第三步：选择保存路径 ──
@@ -1006,28 +1122,18 @@ class MainWindow(FluentWindow):
             csv_data = self._db.export_csv()
             with open(path, "w", encoding="utf-8-sig") as f:
                 f.write(csv_data)
-            InfoBar.success(
-                title="导出成功",
-                content=f"已导出到 {path}",
-                position=InfoBarPosition.TOP, duration=3000, parent=self,
-            )
-        except Exception as e:
-            InfoBar.error(
-                title="导出失败",
-                content=str(e),
-                position=InfoBarPosition.TOP, duration=3000, parent=self,
-            )
+            _toast(self, "导出成功")
+        except Exception:
+            _toast(self, "导出失败", "error")
 
     def _on_change_password(self):
         """修改主密码"""
-        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel
-        from qfluentwidgets import PasswordLineEdit, LineEdit
-
         dialog = QDialog(self)
         dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setWindowTitle("修改主密码")
         dialog.setWindowIcon(self.windowIcon())
         dialog.setFixedSize(440, 350)
+        dialog.setStyleSheet(INPUT_STYLE)
 
         layout = QVBoxLayout(dialog)
         layout.setSpacing(14)
@@ -1042,7 +1148,8 @@ class MainWindow(FluentWindow):
         cur_label = QLabel("当前密码")
         cur_label.setStyleSheet(LABEL_STYLE)
         layout.addWidget(cur_label)
-        cur_input = PasswordLineEdit()
+        cur_input = QLineEdit()
+        cur_input.setEchoMode(QLineEdit.Password)
         cur_input.setPlaceholderText("输入当前主密码")
         cur_input.setFixedHeight(INPUT_MIN_HEIGHT)
         layout.addWidget(cur_input)
@@ -1051,7 +1158,8 @@ class MainWindow(FluentWindow):
         new_label = QLabel("新密码")
         new_label.setStyleSheet(LABEL_STYLE)
         layout.addWidget(new_label)
-        new_input = PasswordLineEdit()
+        new_input = QLineEdit()
+        new_input.setEchoMode(QLineEdit.Password)
         new_input.setPlaceholderText("输入新主密码")
         new_input.setFixedHeight(INPUT_MIN_HEIGHT)
         layout.addWidget(new_input)
@@ -1060,7 +1168,8 @@ class MainWindow(FluentWindow):
         confirm_label = QLabel("确认新密码")
         confirm_label.setStyleSheet(LABEL_STYLE)
         layout.addWidget(confirm_label)
-        confirm_input = PasswordLineEdit()
+        confirm_input = QLineEdit()
+        confirm_input.setEchoMode(QLineEdit.Password)
         confirm_input.setPlaceholderText("再次输入新主密码")
         confirm_input.setFixedHeight(INPUT_MIN_HEIGHT)
         layout.addWidget(confirm_input)
@@ -1071,8 +1180,10 @@ class MainWindow(FluentWindow):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
         btn_layout.addStretch()
-        cancel_btn = PushButton("取消")
-        save_btn = PrimaryPushButton("确认修改")
+        cancel_btn = QPushButton("取消")
+        cancel_btn.setStyleSheet(BTN_STYLE)
+        save_btn = QPushButton("确认修改")
+        save_btn.setStyleSheet(PRIMARY_BTN_STYLE)
         cancel_btn.setFixedHeight(BTN_MIN_HEIGHT)
         save_btn.setFixedHeight(BTN_MIN_HEIGHT)
         cancel_btn.clicked.connect(dialog.reject)
@@ -1086,15 +1197,15 @@ class MainWindow(FluentWindow):
             confirm = confirm_input.text()
 
             if not cur_password or not new_password:
-                InfoBar.warning(title="提示", content="请填写所有字段", position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                _toast(dialog, "请填写所有字段", "warn")
                 return
 
             if len(new_password) < 6:
-                InfoBar.warning(title="提示", content="新密码至少 6 个字符", position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                _toast(dialog, "新密码至少 6 个字符", "warn")
                 return
 
             if new_password != confirm:
-                InfoBar.warning(title="提示", content="两次输入的新密码不一致", position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                _toast(dialog, "两次输入的新密码不一致", "warn")
                 return
 
             # 验证当前密码
@@ -1103,11 +1214,11 @@ class MainWindow(FluentWindow):
                 salt = self._config.get_salt()
                 iterations = self._config.get_iterations()
             except ValueError as e:
-                InfoBar.error(title="错误", content=str(e), position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                _toast(dialog, str(e), "error")
                 return
 
             if not verify_master_password(cur_password, salt, stored_hash, iterations):
-                InfoBar.error(title="错误", content="当前密码错误", position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                _toast(dialog, "当前密码错误", "error")
                 return
 
             # 派生新密钥并重新加密所有数据
@@ -1118,8 +1229,7 @@ class MainWindow(FluentWindow):
             try:
                 self._db.rekey(new_key)
             except Exception:
-                InfoBar.error(title="错误", content="数据加密失败，请重试",
-                              position=InfoBarPosition.TOP, duration=3000, parent=dialog)
+                _toast(dialog, "数据加密失败，请重试", "error")
                 return
 
             # 更新配置
@@ -1127,8 +1237,7 @@ class MainWindow(FluentWindow):
             self._config.set("salt", new_salt.hex())
             self._config.set("kdf_iterations", str(DEFAULT_ITERATIONS))
 
-            InfoBar.success(title="成功", content="主密码已修改，请重新登录",
-                            position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+            _toast(dialog, "主密码已修改，请重新登录")
             dialog.accept()
 
         save_btn.clicked.connect(on_save)
@@ -1136,9 +1245,11 @@ class MainWindow(FluentWindow):
         # 标志位：on_save 中 accept 时置为 True
         accepted = [False]
         _orig_accept = dialog.accept
+
         def _mark_accept():
             accepted[0] = True
             _orig_accept()
+
         dialog.accept = _mark_accept
 
         dialog.exec_()
@@ -1148,10 +1259,6 @@ class MainWindow(FluentWindow):
 
     def _on_about(self):
         """关于对话框"""
-        from PyQt5.QtWidgets import QDialog, QVBoxLayout
-        from PyQt5.QtCore import QUrl
-        from PyQt5.QtGui import QDesktopServices
-
         dialog = QDialog(self)
         dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setWindowTitle("关于")
@@ -1163,7 +1270,7 @@ class MainWindow(FluentWindow):
         layout.setContentsMargins(28, 24, 28, 24)
 
         # 图标
-        icon_label = QLabel("🔐")
+        icon_label = QLabel("\U0001f510")
         icon_label.setFont(QFont("Microsoft YaHei", 32))
         icon_label.setAlignment(Qt.AlignCenter)
         icon_label.setStyleSheet("background: transparent; border: none;")
@@ -1187,9 +1294,9 @@ class MainWindow(FluentWindow):
 
         # 特性说明
         features = [
-            ("📴  完全离线，不联网不上传", "#555"),
-            ("💾  数据仅保存在你的电脑上", "#555"),
-            ("🔒  AES-256 加密保护", "#555"),
+            ("完全离线，不联网不上传", "#555"),
+            ("数据仅保存在你的电脑上", "#555"),
+            ("AES-256 加密保护", "#555"),
         ]
         for text, color in features:
             fl = QLabel(text)

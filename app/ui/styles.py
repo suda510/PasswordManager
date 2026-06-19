@@ -1,130 +1,197 @@
-"""公共样式定义
+"""公共样式定义"""
 
-统一全应用的视觉风格。
-"""
-
-# 主题色
-PRIMARY_COLOR = "#0078d4"  # Windows 蓝
+PRIMARY_COLOR = "#0078d4"
 PRIMARY_HOVER = "#106ebe"
 PRIMARY_PRESSED = "#005a9e"
-
 DANGER_COLOR = "#e81123"
-DANGER_HOVER = "#c50f1f"
-
 SUCCESS_COLOR = "#107c10"
 WARNING_COLOR = "#d83b01"
-
-# 文字色
 TEXT_PRIMARY = "#1a1a1a"
 TEXT_SECONDARY = "#666666"
 TEXT_MUTED = "#999999"
-
-# 背景色
 BG_CARD = "white"
 BG_PAGE = "#f5f5f5"
-BG_INPUT = "#fafafa"
 
-# 边框
-BORDER_LIGHT = "1px solid rgba(0, 0, 0, 0.06)"
-BORDER_INPUT = "1px solid #e0e0e0"
-BORDER_FOCUS = f"2px solid {PRIMARY_COLOR}"
-
-# 圆角
-RADIUS_CARD = "12px"
-RADIUS_BUTTON = "6px"
-RADIUS_INPUT = "6px"
-
-# 卡片样式
-CARD_STYLE = f"""
-    background: {BG_CARD};
-    border-radius: {RADIUS_CARD};
-    border: {BORDER_LIGHT};
+INPUT_STYLE = """
+    QLineEdit, QTextEdit {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 13px;
+        background: white;
+        color: #1a1a1a;
+    }
+    QLineEdit:focus, QTextEdit:focus {
+        border: 2px solid #0078d4;
+    }
 """
 
-# 标题样式
-TITLE_STYLE = f"""
-    color: {TEXT_PRIMARY};
-    font-size: 20px;
-    font-weight: 600;
-    background: transparent;
-    border: none;
+COMBO_STYLE = """
+    QComboBox {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        padding-right: 36px;
+        font-size: 13px;
+        background: white;
+        color: #1a1a1a;
+        min-height: 20px;
+    }
+    QComboBox:focus {
+        border: 2px solid #0078d4;
+    }
+    QComboBox::drop-down {
+        subcontrol-origin: padding;
+        subcontrol-position: top right;
+        width: 32px;
+        border: none;
+        border-left: 1px solid #eee;
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+        background: transparent;
+    }
+    QComboBox::drop-down:hover {
+        background: #f5f5f5;
+    }
+    QComboBox::down-arrow {
+        image: none;
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid #999;
+        margin-right: 8px;
+    }
+    QComboBox QAbstractItemView {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        outline: none;
+        padding: 6px;
+    }
+    QComboBox QAbstractItemView::item {
+        height: 44px;
+        padding: 0 14px;
+        border-radius: 8px;
+        margin: 2px 0;
+    }
+    QComboBox QAbstractItemView::item:selected {
+        background: #e8f0fe;
+        color: #0078d4;
+        border-left: 3px solid #0078d4;
+    }
+    QComboBox QAbstractItemView::item:hover {
+        background: #f5f5f5;
+    }
 """
 
-SUBTITLE_STYLE = f"""
-    color: {TEXT_SECONDARY};
-    font-size: 13px;
-    background: transparent;
-    border: none;
+GROUP_LIST_STYLE = """
+    QListWidget {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        outline: none;
+        padding: 4px;
+    }
+    QListWidget::item {
+        height: 44px;
+        padding: 0 14px;
+        border-radius: 8px;
+        margin: 2px 0;
+    }
+    QListWidget::item:selected {
+        background: #e8f0fe;
+        color: #0078d4;
+        border-left: 3px solid #0078d4;
+    }
+    QListWidget::item:hover {
+        background: #f5f5f5;
+    }
 """
 
-# 标签样式
-LABEL_STYLE = f"""
-    color: {TEXT_PRIMARY};
-    font-size: 13px;
-    font-weight: 500;
-    background: transparent;
-    border: none;
+ICON_BTN_STYLE = """
+    QToolButton {
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        padding: 4px;
+        font-size: 14px;
+        color: #888;
+    }
+    QToolButton:hover {
+        background: #f0f0f0;
+        color: #333;
+    }
+    QToolButton:pressed {
+        background: #e0e0e0;
+    }
 """
 
-LABEL_MUTED_STYLE = f"""
-    color: {TEXT_MUTED};
-    font-size: 12px;
-    background: transparent;
-    border: none;
+PRIMARY_BTN_STYLE = """
+    QPushButton {
+        background: #0078d4;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    QPushButton:hover { background: #106ebe; }
+    QPushButton:pressed { background: #005a9e; }
+    QPushButton:disabled { background: #ccc; }
 """
 
-# 关闭按钮样式
-CLOSE_BTN_STYLE = f"""
-    QPushButton {{
-        color: {TEXT_MUTED};
+BTN_STYLE = """
+    QPushButton {
+        background: #f0f0f0;
+        color: #1a1a1a;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-size: 13px;
+    }
+    QPushButton:hover { background: #e5e5e5; }
+    QPushButton:pressed { background: #d9d9d9; }
+"""
+
+LINK_BTN_STYLE = """
+    QPushButton {
+        color: #0078d4;
+        border: none;
+        background: transparent;
+        font-size: 13px;
+    }
+    QPushButton:hover { text-decoration: underline; }
+"""
+
+DANGER_BTN_STYLE = """
+    QPushButton {
+        color: #e81123;
+        border: none;
+        background: transparent;
+        font-size: 13px;
+    }
+    QPushButton:hover { text-decoration: underline; }
+"""
+
+CLOSE_BTN_STYLE = """
+    QPushButton {
+        color: #999;
         font-size: 15px;
         font-weight: bold;
         background: transparent;
         border: none;
         border-radius: 15px;
-    }}
-    QPushButton:hover {{
-        color: white;
-        background: {DANGER_COLOR};
-    }}
-    QPushButton:pressed {{
-        background: {DANGER_HOVER};
-    }}
+    }
+    QPushButton:hover { color: white; background: #e81123; }
 """
 
-# 链接按钮样式（如"忘记密码"）
-LINK_BTN_STYLE = f"""
-    color: {PRIMARY_COLOR};
-    border: none;
-    background: transparent;
-    font-size: 13px;
-"""
+CARD_STYLE = "background: white; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);"
 
-# 危险按钮样式
-DANGER_BTN_STYLE = f"""
-    PushButton {{
-        color: {DANGER_COLOR};
-        border: none;
-        background: transparent;
-        font-size: 13px;
-    }}
-    PushButton:hover {{
-        color: {DANGER_HOVER};
-    }}
-"""
+LABEL_STYLE = "color: #1a1a1a; font-size: 13px; font-weight: 500; background: transparent; border: none;"
+LABEL_MUTED_STYLE = "color: #999; font-size: 12px; background: transparent; border: none;"
 
-# 分隔线样式
-SEPARATOR_STYLE = """
-    background: #e8e8e8;
-    border: none;
-    max-height: 1px;
-"""
-
-# 输入框最小高度
 INPUT_MIN_HEIGHT = 38
-
-# 按钮最小高度
 BTN_MIN_HEIGHT = 38
-
-# 对话框宽度
 DIALOG_WIDTH = 440
