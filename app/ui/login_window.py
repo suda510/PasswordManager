@@ -60,37 +60,41 @@ class RecoveryKeyDialog(QDialog):
 
     def _setup_ui(self):
         self.setWindowTitle("恢复密钥")
-        self.setFixedSize(DIALOG_WIDTH, 300)
+        self.setFixedSize(DIALOG_WIDTH + 40, 320)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
-        layout.setSpacing(16)
-        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(14)
+        layout.setContentsMargins(32, 24, 32, 24)
 
         # 警告图标
         warning = QLabel("⚠️")
-        warning.setFont(QFont("Microsoft YaHei", 32))
+        warning.setFont(QFont("Microsoft YaHei", 28))
         warning.setAlignment(Qt.AlignCenter)
+        warning.setStyleSheet("background: transparent; border: none;")
         layout.addWidget(warning)
 
         # 提示文字
         hint = QLabel("请妥善保存以下恢复密钥，忘记主密码时可用于恢复")
         hint.setWordWrap(True)
         hint.setAlignment(Qt.AlignCenter)
-        hint.setStyleSheet(f"color: #666; font-size: 13px; background: transparent;")
+        hint.setFont(QFont("Microsoft YaHei", 11))
+        hint.setStyleSheet("color: #666; background: transparent; border: none;")
         layout.addWidget(hint)
 
         # 恢复密钥显示
         key_label = QLabel(self._recovery_key)
-        key_label.setFont(QFont("Consolas", 22, QFont.Bold))
+        key_label.setFont(QFont("Consolas", 18, QFont.Bold))
         key_label.setAlignment(Qt.AlignCenter)
+        key_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         key_label.setStyleSheet(f"""
             QLabel {{
                 color: {PRIMARY_COLOR};
                 background: #f0f6ff;
                 border: 2px dashed {PRIMARY_COLOR};
                 border-radius: 8px;
-                padding: 14px;
-                letter-spacing: 6px;
+                padding: 12px;
+                letter-spacing: 4px;
             }}
         """)
         layout.addWidget(key_label)
@@ -98,12 +102,14 @@ class RecoveryKeyDialog(QDialog):
         # 复制按钮
         copy_btn = PushButton("复制到剪贴板")
         copy_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        copy_btn.setCursor(Qt.PointingHandCursor)
         copy_btn.clicked.connect(self._copy_key)
         layout.addWidget(copy_btn, alignment=Qt.AlignCenter)
 
         # 确认按钮
         ok_btn = PrimaryPushButton("我已保存，继续")
         ok_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        ok_btn.setCursor(Qt.PointingHandCursor)
         ok_btn.clicked.connect(self.accept)
         layout.addWidget(ok_btn)
 
@@ -538,7 +544,7 @@ class LoginWindow(QWidget):
         if hint:
             self._config.set("password_hint", hint)
 
-        RecoveryKeyDialog(recovery_key, self).exec_()
+        RecoveryKeyDialog(recovery_key).exec_()
         self.login_success.emit(key)
 
     def _handle_login(self, password: str):
@@ -560,7 +566,7 @@ class LoginWindow(QWidget):
             new_key = dialog.get_new_key()
             if new_key:
                 new_recovery = dialog.get_new_recovery()
-                RecoveryKeyDialog(new_recovery, self).exec_()
+                RecoveryKeyDialog(new_recovery).exec_()
                 self.login_success.emit(new_key)
             else:
                 self.need_restart.emit()
