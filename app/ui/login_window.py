@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QLineEdit,
     QDialog,
-    QMessageBox,
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QMouseEvent
@@ -42,7 +41,7 @@ from app.ui.styles import (
 )
 
 
-def _toast(parent, message, level="info"):
+def _toast(parent, message, level="info", duration=2500):
     """标题右侧自动消失的通知"""
     colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
     bg = colors.get(level, "#323232")
@@ -58,7 +57,7 @@ def _toast(parent, message, level="info"):
     label.raise_()
     label.show()
 
-    QTimer.singleShot(2500, label.deleteLater)
+    QTimer.singleShot(duration, label.deleteLater)
 
 
 def _confirm(parent, title, message):
@@ -339,16 +338,10 @@ class ForgotPasswordDialog(QDialog):
 
     def _show_hint(self):
         hint = self._config.get("password_hint")
-        if not hint:
+        if hint:
+            _toast(self, f"密码提示：{hint}", duration=5000)
+        else:
             _toast(self, "未设置密码提示", "warn")
-            return
-        mb = QMessageBox(self)
-        mb.setWindowTitle("密码提示")
-        mb.setText(hint)
-        mb.setIcon(QMessageBox.Information)
-        mb.setStandardButtons(QMessageBox.Ok)
-        mb.setStyleSheet("QLabel { color: black; } QPushButton { color: black; }")
-        mb.exec_()
 
     def _on_reset_all(self):
         if _confirm(
