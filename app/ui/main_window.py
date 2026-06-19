@@ -333,7 +333,14 @@ class MainWindow(QMainWindow):
         # 分组下拉框 + 管理按钮
         group_row = QHBoxLayout()
         group_row.setSpacing(8)
-        self._group_combo = QComboBox()
+
+        class WideCombo(QComboBox):
+            """下拉宽度与控件一致的 ComboBox"""
+            def showPopup(self):
+                self.view().setMinimumWidth(self.width())
+                super().showPopup()
+
+        self._group_combo = WideCombo()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
         self._group_combo.setStyleSheet(_get_combo_style())
         # 下拉视图单独设置样式
@@ -343,7 +350,6 @@ class MainWindow(QMainWindow):
         view.setSpacing(2)
         view.setUniformItemSizes(True)
         view.setIconSize(QSize(0, 0))
-        view.setMinimumWidth(200)
         self._group_combo.setView(view)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
