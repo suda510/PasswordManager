@@ -82,25 +82,24 @@ COMBO_STYLE = """
 """
 
 GROUP_LIST_STYLE = """
-    QListWidget {
+    QListWidget, QListView {
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         background: white;
         outline: none;
         padding: 4px;
     }
-    QListWidget::item {
-        height: 44px;
+    QListWidget::item, QListView::item {
+        height: 40px;
         padding: 0 14px;
-        border-radius: 8px;
-        margin: 2px 0;
+        border-radius: 6px;
+        margin: 1px 2px;
     }
-    QListWidget::item:selected {
+    QListWidget::item:selected, QListView::item:selected {
         background: #e8f0fe;
         color: #0078d4;
-        border-left: 3px solid #0078d4;
     }
-    QListWidget::item:hover {
+    QListWidget::item:hover, QListView::item:hover {
         background: #f5f5f5;
     }
 """
