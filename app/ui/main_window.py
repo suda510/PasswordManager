@@ -333,10 +333,15 @@ class MainWindow(QMainWindow):
         # 下拉视图样式（popup 窗口去掉边框）
         self._group_combo.setItemDelegate(FixedHeightDelegate())
         self._group_combo.view().setStyleSheet(GROUP_LIST_STYLE)
-        # popup 窗口去掉原生边框，只保留 view 的圆角
+        # popup 窗口去掉原生边框，自身圆角白底
         popup = self._group_combo.view().window()
         popup.setWindowFlags(popup.windowFlags() | Qt.FramelessWindowHint)
-        popup.setStyleSheet("background: transparent; border: none;")
+        popup.setAttribute(Qt.WA_TranslucentBackground)
+        popup.setStyleSheet("""
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        """)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
