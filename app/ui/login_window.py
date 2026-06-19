@@ -356,7 +356,13 @@ class ForgotPasswordDialog(QDialog):
         if not hint:
             _toast(self, "未设置密码提示", "warn")
             return
-        QMessageBox.information(self, "密码提示", hint)
+        mb = QMessageBox(self)
+        mb.setWindowTitle("密码提示")
+        mb.setText(hint)
+        mb.setIcon(QMessageBox.Information)
+        mb.setStandardButtons(QMessageBox.Ok)
+        mb.setStyleSheet("QLabel { color: black; } QPushButton { color: black; }")
+        mb.exec_()
 
     def _on_reset_all(self):
         if _confirm(
