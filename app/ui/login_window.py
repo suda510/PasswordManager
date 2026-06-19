@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QDialog,
     QMessageBox,
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QMouseEvent
 
 from app.core.crypto import (
@@ -42,52 +42,14 @@ from app.ui.styles import (
 )
 
 
-class Toast(QWidget):
-    """右上角自动消失的通知"""
-
-    _active = []  # 防止被 GC 回收
-
-    def __init__(self, parent, message, duration=2500, level="info"):
-        super().__init__(parent)
-        Toast._active.append(self)
-
-        colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
-        bg = colors.get(level, "#323232")
-
-        self.setFixedSize(300, 44)
-        self.setStyleSheet(f"background: {bg}; border-radius: 8px; border: none;")
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 0, 16, 0)
-        layout.setSpacing(8)
-
-        icon_text = {"info": "✓", "error": "✕", "warn": "!"}.get(level, "✓")
-        icon = QLabel(icon_text)
-        icon.setFont(QFont("Microsoft YaHei", 12, QFont.Bold))
-        icon.setStyleSheet("color: white; background: transparent; border: none;")
-        layout.addWidget(icon)
-
-        label = QLabel(message)
-        label.setFont(QFont("Microsoft YaHei", 11))
-        label.setStyleSheet("color: white; background: transparent; border: none;")
-        layout.addWidget(label, stretch=1)
-
-        # 定位到右上角
-        self.move(parent.width() - self.width() - 16, 16)
-        self.raise_()
-        self.show()
-
-        QTimer.singleShot(duration, self._close)
-
-    def _close(self):
-        if self in Toast._active:
-            Toast._active.remove(self)
-        self.close()
-        self.deleteLater()
-
-
 def _toast(parent, message, level="info"):
-    Toast(parent, message, level=level)
+    """用 QMessageBox 显示通知（确保文字可见）"""
+    if level == "error":
+        QMessageBox.critical(parent, "错误", message)
+    elif level == "warn":
+        QMessageBox.warning(parent, "提示", message)
+    else:
+        QMessageBox.information(parent, "提示", message)
 
 
 def _confirm(parent, title, message):
