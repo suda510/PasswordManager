@@ -351,6 +351,7 @@ class MainWindow(FluentWindow):
         from qfluentwidgets import LineEdit
 
         dialog = QDialog(self)
+        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setWindowTitle("管理分组")
         dialog.setFixedSize(360, 420)
         dialog.setWindowIcon(self.windowIcon())
@@ -463,6 +464,7 @@ class MainWindow(FluentWindow):
             new_name_line.setFixedHeight(INPUT_MIN_HEIGHT)
 
             rename_dialog = QDialog(dialog)
+            rename_dialog.setWindowFlags(rename_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
             rename_dialog.setWindowTitle("重命名分组")
             rename_dialog.setFixedWidth(320)
             rl = QVBoxLayout(rename_dialog)
@@ -787,6 +789,7 @@ class MainWindow(FluentWindow):
 
         # ── 第一步：验证主密码 ──
         verify_dialog = QDialog(self)
+        verify_dialog.setWindowFlags(verify_dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         verify_dialog.setWindowTitle("身份验证")
         verify_dialog.setFixedWidth(380)
         verify_dialog.setWindowIcon(self.windowIcon())
@@ -883,6 +886,7 @@ class MainWindow(FluentWindow):
         from qfluentwidgets import PasswordLineEdit, LineEdit
 
         dialog = QDialog(self)
+        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setWindowTitle("修改主密码")
         dialog.setWindowIcon(self.windowIcon())
         dialog.setFixedSize(440, 350)
@@ -996,6 +1000,7 @@ class MainWindow(FluentWindow):
         from PyQt5.QtGui import QDesktopServices
 
         dialog = QDialog(self)
+        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setWindowTitle("关于")
         dialog.setFixedSize(360, 300)
         dialog.setWindowIcon(self.windowIcon())
