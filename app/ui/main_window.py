@@ -87,25 +87,18 @@ def _avatar_color(text: str) -> str:
 
 
 def _toast(parent, message, level="info"):
-    """右上角自动消失的通知（用调色板避免样式继承）"""
-    from PyQt5.QtGui import QPalette, QColor
-
-    colors = {"info": QColor(50, 50, 50), "error": QColor(232, 17, 35), "warn": QColor(216, 59, 1)}
-    bg = colors.get(level, QColor(50, 50, 50))
+    """右上角自动消失的通知"""
+    colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
+    bg = colors.get(level, "#323232")
 
     label = QLabel(parent)
-    label.setText(f"  {message}")
-    label.setFont(QFont("Microsoft YaHei", 11))
-    label.setFixedSize(300, 44)
-    label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+    label.setText(f" {message} ")
+    label.setFont(QFont("Microsoft YaHei", 10))
+    label.adjustSize()
+    label.setFixedHeight(30)
+    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 4px; }}")
 
-    pal = label.palette()
-    pal.setColor(QPalette.Window, bg)
-    pal.setColor(QPalette.WindowText, QColor(255, 255, 255))
-    label.setPalette(pal)
-    label.setAutoFillBackground(True)
-
-    label.move(parent.width() - 316, 16)
+    label.move(parent.width() - label.width() - 16, 12)
     label.raise_()
     label.show()
 
@@ -318,12 +311,20 @@ class MainWindow(QMainWindow):
                 self.view().setMinimumWidth(self.width())
                 super().showPopup()
 
+        from PyQt5.QtWidgets import QStyledItemDelegate
+        from PyQt5.QtCore import QSize
+
+        class FixedHeightDelegate(QStyledItemDelegate):
+            """固定行高 delegate"""
+            def sizeHint(self, option, index):
+                return QSize(option.rect.width(), 40)
+
         self._group_combo = AutoWidthCombo()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
         self._group_combo.setStyleSheet(_get_combo_style())
         # 下拉视图样式
+        self._group_combo.setItemDelegate(FixedHeightDelegate())
         self._group_combo.view().setStyleSheet(GROUP_LIST_STYLE)
-        self._group_combo.view().setSpacing(2)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
