@@ -1111,10 +1111,11 @@ class MainWindow(FluentWindow):
             InfoBar.success(title="成功", content="主密码已修改，请重新登录",
                             position=InfoBarPosition.TOP, duration=2000, parent=dialog)
             dialog.accept()
-            self.logout.emit()
 
         save_btn.clicked.connect(on_save)
-        dialog.exec_()
+
+        if dialog.exec_() == QDialog.Accepted:
+            self.logout.emit()
 
     def _on_about(self):
         """关于对话框"""
