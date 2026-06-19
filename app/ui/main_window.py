@@ -334,25 +334,13 @@ class MainWindow(QMainWindow):
         group_row = QHBoxLayout()
         group_row.setSpacing(8)
 
-        class WideCombo(QComboBox):
-            """下拉宽度始终宽的"""
-            def showPopup(self):
-                # 强制下拉宽度 = max(控件宽度, 250)
-                self.view().setMinimumWidth(max(self.width(), 250))
-                super().showPopup()
-
-        self._group_combo = WideCombo()
+        self._group_combo = QComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
+        self._group_combo.setMinimumWidth(250)
         self._group_combo.setStyleSheet(_get_combo_style())
-        # 下拉视图单独设置样式
-        from PyQt5.QtWidgets import QListView
-        view = QListView()
-        view.setStyleSheet(GROUP_LIST_STYLE)
-        view.setSpacing(2)
-        view.setUniformItemSizes(True)
-        view.setIconSize(QSize(0, 0))
-        view.setMinimumWidth(250)
-        self._group_combo.setView(view)
+        # 下拉视图样式
+        self._group_combo.view().setStyleSheet(GROUP_LIST_STYLE)
+        self._group_combo.view().setSpacing(2)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
@@ -596,9 +584,6 @@ class MainWindow(QMainWindow):
 
         for group in self._get_all_groups():
             self._group_combo.addItem(group, group)
-
-        # 强制下拉视图宽度
-        self._group_combo.view().setMinimumWidth(250)
 
         # 恢复之前选中的分组
         if current_text:
