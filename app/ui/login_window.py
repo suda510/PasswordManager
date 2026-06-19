@@ -286,6 +286,8 @@ class LoginWindow(QWidget):
         self._config = config
         self._is_first_run = not self._config.has_master_password()
         self._drag_pos = None
+        if self._is_first_run:
+            self._show_welcome()
         self._setup_ui()
 
     def mousePressEvent(self, event: QMouseEvent):
@@ -301,6 +303,87 @@ class LoginWindow(QWidget):
     def mouseReleaseEvent(self, event: QMouseEvent):
         self._drag_pos = None
         event.accept()
+
+    def _show_welcome(self):
+        """首次使用弹出欢迎提示"""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout
+
+        dialog = QDialog(self)
+        dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        dialog.setAttribute(Qt.WA_TranslucentBackground)
+        dialog.setFixedSize(DIALOG_WIDTH, 440)
+
+        outer = QVBoxLayout(dialog)
+        outer.setContentsMargins(0, 0, 0, 0)
+
+        card = QWidget()
+        card.setObjectName("welcomeCard")
+        card.setStyleSheet(f"#welcomeCard {{{CARD_STYLE}}}")
+        outer.addWidget(card)
+
+        layout = QVBoxLayout(card)
+        layout.setSpacing(16)
+        layout.setContentsMargins(36, 32, 36, 32)
+
+        # 标题
+        icon = QLabel("🔐")
+        icon.setFont(QFont("Microsoft YaHei", 36))
+        icon.setAlignment(Qt.AlignCenter)
+        icon.setStyleSheet("background: transparent; border: none;")
+        layout.addWidget(icon)
+
+        title = QLabel("欢迎使用密码管理器")
+        title.setFont(QFont("Microsoft YaHei", 18, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
+        layout.addWidget(title)
+
+        layout.addSpacing(8)
+
+        # 特性说明
+        features = [
+            ("📴", "完全离线", "不联网，不上传任何数据"),
+            ("💾", "仅存本地", "数据保存在你的电脑上"),
+            ("🔒", "AES-256 加密", "密码高强度加密存储"),
+        ]
+
+        for emoji, title_text, desc_text in features:
+            row = QHBoxLayout()
+            row.setSpacing(12)
+
+            emoji_label = QLabel(emoji)
+            emoji_label.setFont(QFont("Microsoft YaHei", 20))
+            emoji_label.setFixedSize(36, 36)
+            emoji_label.setAlignment(Qt.AlignCenter)
+            emoji_label.setStyleSheet("background: transparent; border: none;")
+            row.addWidget(emoji_label)
+
+            text_col = QVBoxLayout()
+            text_col.setSpacing(2)
+
+            ft = QLabel(title_text)
+            ft.setFont(QFont("Microsoft YaHei", 12, QFont.DemiBold))
+            ft.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
+            text_col.addWidget(ft)
+
+            fd = QLabel(desc_text)
+            fd.setFont(QFont("Microsoft YaHei", 10))
+            fd.setStyleSheet("color: #888; background: transparent; border: none;")
+            text_col.addWidget(fd)
+
+            row.addLayout(text_col, stretch=1)
+            layout.addLayout(row)
+
+        layout.addSpacing(8)
+
+        # 开始按钮
+        start_btn = PrimaryPushButton("开始使用")
+        start_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        start_btn.setCursor(Qt.PointingHandCursor)
+        start_btn.clicked.connect(dialog.accept)
+        layout.addWidget(start_btn)
+
+        dialog.exec_()
 
     def _setup_ui(self):
         self.setWindowTitle("密码管理器")

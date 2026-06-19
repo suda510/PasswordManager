@@ -1125,7 +1125,7 @@ class MainWindow(FluentWindow):
         dialog = QDialog(self)
         dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setWindowTitle("关于")
-        dialog.setFixedSize(360, 300)
+        dialog.setFixedSize(380, 400)
         dialog.setWindowIcon(self.windowIcon())
 
         layout = QVBoxLayout(dialog)
@@ -1153,11 +1153,28 @@ class MainWindow(FluentWindow):
         ver_label.setStyleSheet("color: #999; background: transparent; border: none;")
         layout.addWidget(ver_label)
 
+        layout.addSpacing(4)
+
+        # 特性说明
+        features = [
+            ("📴  完全离线，不联网不上传", "#555"),
+            ("💾  数据仅保存在你的电脑上", "#555"),
+            ("🔒  AES-256 加密保护", "#555"),
+        ]
+        for text, color in features:
+            fl = QLabel(text)
+            fl.setFont(QFont("Microsoft YaHei", 11))
+            fl.setAlignment(Qt.AlignCenter)
+            fl.setStyleSheet(f"color: {color}; background: transparent; border: none;")
+            layout.addWidget(fl)
+
+        layout.addSpacing(4)
+
         # 描述
-        desc_label = QLabel("本地优先、离线可用的桌面密码管理器\nAES-256 加密 · 零云端依赖")
-        desc_label.setFont(QFont("Microsoft YaHei", 11))
+        desc_label = QLabel("你的密码，只属于你")
+        desc_label.setFont(QFont("Microsoft YaHei", 10))
         desc_label.setAlignment(Qt.AlignCenter)
-        desc_label.setStyleSheet("color: #666; background: transparent; border: none;")
+        desc_label.setStyleSheet("color: #999; background: transparent; border: none;")
         layout.addWidget(desc_label)
 
         layout.addSpacing(8)
