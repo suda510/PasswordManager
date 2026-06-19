@@ -94,8 +94,14 @@ def _confirm(parent, title, message):
     dialog = QDialog(parent)
     dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
     dialog.setFixedSize(380, 180)
-    dialog.setStyleSheet("QDialog { background: white; }")
     dialog.setWindowTitle(title)
+    dialog.setStyleSheet("""
+        QDialog { background: white; }
+        QLabel { color: #1a1a1a; background: transparent; }
+        QPushButton {
+            border-radius: 6px; padding: 8px 20px; font-size: 13px;
+        }
+    """)
     if parent:
         dialog.setWindowIcon(parent.windowIcon())
 
@@ -349,12 +355,20 @@ class ForgotPasswordDialog(QDialog):
         if not hint:
             _toast(self, "未设置密码提示", "warn")
             return
-        # 自定义弹窗显示密码提示
-        dialog = QDialog(self)
-        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-        dialog.setFixedSize(360, 160)
+        # 使用独立的顶层窗口，彻底隔离父样式
+        dialog = QDialog(None)  # parent=None 避免继承父样式
+        dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+        dialog.setFixedSize(360, 180)
         dialog.setWindowTitle("密码提示")
-        dialog.setStyleSheet("QDialog { background: white; }")
+        dialog.setStyleSheet("""
+            QDialog { background: white; }
+            QLabel { color: #1a1a1a; background: transparent; }
+            QPushButton {
+                background: #0078d4; color: white; border: none;
+                border-radius: 6px; padding: 8px 20px; font-size: 13px; font-weight: 600;
+            }
+            QPushButton:hover { background: #106ebe; }
+        """)
 
         layout = QVBoxLayout(dialog)
         layout.setSpacing(12)
@@ -362,18 +376,18 @@ class ForgotPasswordDialog(QDialog):
 
         title = QLabel("密码提示")
         title.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
-        title.setStyleSheet("color: #1a1a1a; background: transparent;")
         layout.addWidget(title)
 
         hint_label = QLabel(hint)
         hint_label.setFont(QFont("Microsoft YaHei", 12))
-        hint_label.setStyleSheet("color: #333; background: #f8f8f8; border: 1px solid #eee; border-radius: 6px; padding: 10px;")
+        hint_label.setStyleSheet("color: #333; background: #f8f8f8; border: 1px solid #ddd; border-radius: 6px; padding: 10px;")
         hint_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         hint_label.setWordWrap(True)
         layout.addWidget(hint_label)
 
+        layout.addStretch()
+
         ok_btn = QPushButton("确定")
-        ok_btn.setStyleSheet(PRIMARY_BTN_STYLE)
         ok_btn.setFixedHeight(BTN_MIN_HEIGHT)
         ok_btn.clicked.connect(dialog.accept)
         layout.addWidget(ok_btn, alignment=Qt.AlignRight)

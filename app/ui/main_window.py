@@ -343,6 +343,7 @@ class MainWindow(QMainWindow):
         view.setSpacing(2)
         view.setUniformItemSizes(True)
         view.setIconSize(QSize(0, 0))
+        view.setMinimumWidth(200)
         self._group_combo.setView(view)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
