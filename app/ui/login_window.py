@@ -356,14 +356,7 @@ class ForgotPasswordDialog(QDialog):
         if not hint:
             _toast(self, "未设置密码提示", "warn")
             return
-        # 直接用最简单的弹窗，不设置任何样式表
-        from PyQt5.QtWidgets import QMessageBox
-        mb = QMessageBox(self)
-        mb.setWindowTitle("密码提示")
-        mb.setText(f"<b>密码提示</b><br><br><span style='font-size:14px;'>{hint}</span>")
-        mb.setIcon(QMessageBox.Information)
-        mb.setStandardButtons(QMessageBox.Ok)
-        mb.exec_()
+        QMessageBox.information(self, "密码提示", hint)
 
     def _on_reset_all(self):
         if _confirm(
