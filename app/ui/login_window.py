@@ -213,11 +213,15 @@ class ForgotPasswordDialog(QDialog):
             return
 
         stored_hash = self._config.get("recovery_key_hash")
-        salt = bytes.fromhex(self._config.get("salt"))
-        iterations = int(self._config.get("kdf_iterations"))
-
         if not stored_hash:
             InfoBar.error(title="错误", content="未设置恢复密钥", position=InfoBarPosition.TOP, duration=2000, parent=self)
+            return
+
+        try:
+            salt = self._config.get_salt()
+            iterations = self._config.get_iterations()
+        except ValueError as e:
+            InfoBar.error(title="错误", content=str(e), position=InfoBarPosition.TOP, duration=2000, parent=self)
             return
 
         if not verify_recovery_key(recovery_key, salt, stored_hash, iterations):
@@ -549,8 +553,12 @@ class LoginWindow(QWidget):
 
     def _handle_login(self, password: str):
         stored_hash = self._config.get("master_password_hash")
-        salt = bytes.fromhex(self._config.get("salt"))
-        iterations = int(self._config.get("kdf_iterations"))
+        try:
+            salt = self._config.get_salt()
+            iterations = self._config.get_iterations()
+        except ValueError:
+            self._show_error("配置损坏，请重新设置")
+            return
 
         if verify_master_password(password, salt, stored_hash, iterations):
             key = derive_key(password, salt, iterations)

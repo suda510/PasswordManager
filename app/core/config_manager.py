@@ -54,6 +54,20 @@ class ConfigManager:
         """是否已设置主密码"""
         return self.get("master_password_hash") is not None
 
+    def get_salt(self) -> bytes:
+        """获取 salt 字节，缺失则抛出明确错误"""
+        raw = self.get("salt")
+        if not raw:
+            raise ValueError("配置损坏：salt 缺失")
+        return bytes.fromhex(raw)
+
+    def get_iterations(self) -> int:
+        """获取 KDF 迭代次数，缺失则返回默认值"""
+        raw = self.get("kdf_iterations")
+        if not raw:
+            return 600000
+        return int(raw)
+
     # ── 自定义分组管理 ──
 
     def get_custom_groups(self) -> list[str]:
