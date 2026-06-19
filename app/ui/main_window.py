@@ -323,9 +323,11 @@ class MainWindow(QMainWindow):
                     self._popup = None
 
                 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
-                from PyQt5.QtGui import QRegion, QPainterPath
 
-                popup = QWidget(None, Qt.Popup | Qt.FramelessWindowHint)
+                # 用 Qt.Tool 避免原生 popup 边框
+                popup = QWidget(None, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+                popup.setAttribute(Qt.WA_TranslucentBackground)
+                popup.setFocusPolicy(Qt.NoFocus)
                 self._popup = popup
 
                 layout = QVBoxLayout(popup)
@@ -365,19 +367,21 @@ class MainWindow(QMainWindow):
                 listw.itemClicked.connect(on_select)
                 layout.addWidget(listw)
 
-                # 计算尺寸
                 h = min(listw.sizeHintForRow(0) * self.count() + 12, 300)
                 w = self.width()
                 popup.setFixedSize(w, h)
 
-                # 圆形裁剪 mask（四角统一 10px 圆角）
-                path = QPainterPath()
-                path.addRoundedRect(1, 1, w - 2, h - 2, 10, 10)
-                popup.setMask(QRegion(path.toFillPolygon().toPolygon()))
-
                 pos = self.mapToGlobal(self.rect().bottomLeft())
                 popup.move(pos.x(), pos.y() + 2)
                 popup.show()
+
+                # 点击外部关闭
+                def on_focus_change(old, new):
+                    if new is None or not popup.isAncestorOf(new):
+                        popup.close()
+                        QApplication.instance().focusChanged.disconnect(on_focus_change)
+
+                QApplication.instance().focusChanged.connect(on_focus_change)
 
         self._group_combo = AutoWidthCombo()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
