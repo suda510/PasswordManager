@@ -314,53 +314,70 @@ class MainWindow(QMainWindow):
         group_row.setSpacing(8)
 
         class AutoWidthCombo(QComboBox):
-            """下拉宽度与控件宽度一致"""
+            """下拉宽度与控件宽度一致，四角圆角"""
+            _popup = None
+
             def showPopup(self):
-                self.view().setMinimumWidth(self.width())
-                super().showPopup()
-                popup = self.view().parent()
-                if popup and popup != self:
-                    popup.setWindowFlags(Qt.FramelessWindowHint | Qt.Popup)
-                    popup.setAttribute(Qt.WA_TranslucentBackground)
-                    popup.setFixedSize(popup.size())  # 禁止 resize
-                    # view 自身圆角白底
-                    self.view().setStyleSheet("""
-                        QListView {
-                            background: white;
-                            border: 1px solid #e0e0e0;
-                            border-radius: 8px;
-                            padding: 6px;
-                            outline: none;
-                        }
-                        QListView::item {
-                            height: 40px;
-                            padding: 0 14px;
-                            border-radius: 6px;
-                            margin: 2px 4px;
-                        }
-                        QListView::item:selected {
-                            background: #e8f0fe;
-                            color: #0078d4;
-                        }
-                        QListView::item:hover {
-                            background: #f5f5f5;
-                        }
-                    """)
+                # 关闭旧 popup
+                if self._popup:
+                    self._popup.close()
+                    self._popup = None
 
-        from PyQt5.QtWidgets import QStyledItemDelegate
-        from PyQt5.QtCore import QSize
+                # 创建自定义 popup
+                from PyQt5.QtWidgets import QListWidget, QListWidgetItem
+                popup = QWidget(None, Qt.Popup | Qt.FramelessWindowHint)
+                popup.setAttribute(Qt.WA_TranslucentBackground)
+                self._popup = popup
 
-        class FixedHeightDelegate(QStyledItemDelegate):
-            """固定行高 delegate"""
-            def sizeHint(self, option, index):
-                return QSize(option.rect.width(), 40)
+                layout = QVBoxLayout(popup)
+                layout.setContentsMargins(0, 0, 0, 0)
+
+                # 圆角容器
+                container = QWidget()
+                container.setStyleSheet("""
+                    background: white;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                """)
+                container_layout = QVBoxLayout(container)
+                container_layout.setContentsMargins(4, 4, 4, 4)
+
+                # 列表
+                listw = QListWidget()
+                listw.setStyleSheet("""
+                    QListWidget { background: transparent; border: none; outline: none; }
+                    QListWidget::item { height: 40px; padding: 0 14px; border-radius: 6px; margin: 2px; }
+                    QListWidget::item:selected { background: #e8f0fe; color: #0078d4; }
+                    QListWidget::item:hover { background: #f5f5f5; }
+                """)
+
+                for i in range(self.count()):
+                    item = QListWidgetItem(self.itemText(i))
+                    item.setData(Qt.UserRole, i)
+                    listw.addItem(item)
+
+                if self.currentIndex() >= 0:
+                    listw.setCurrentRow(self.currentIndex())
+
+                def on_select(item):
+                    self.setCurrentIndex(item.data(Qt.UserRole))
+                    popup.close()
+
+                listw.itemClicked.connect(on_select)
+
+                container_layout.addWidget(listw)
+                layout.addWidget(container)
+
+                # 定位到 combo 下方
+                pos = self.mapToGlobal(self.rect().bottomLeft())
+                popup.move(pos.x(), pos.y() + 2)
+                popup.setFixedWidth(self.width())
+                popup.setFixedHeight(min(listw.sizeHintForRow(0) * self.count() + 16, 300))
+                popup.show()
 
         self._group_combo = AutoWidthCombo()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
         self._group_combo.setStyleSheet(_get_combo_style())
-        # 下拉视图样式（popup 窗口去掉边框）
-        self._group_combo.setItemDelegate(FixedHeightDelegate())
-        self._group_combo.view().setStyleSheet(GROUP_LIST_STYLE)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
