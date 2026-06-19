@@ -370,9 +370,9 @@ class MainWindow(QMainWindow):
                 w = self.width()
                 popup.setFixedSize(w, h)
 
-                # 圆形裁剪 mask
+                # 圆形裁剪 mask（四角统一 10px 圆角）
                 path = QPainterPath()
-                path.addRoundedRect(0, 0, w, h, 8, 8)
+                path.addRoundedRect(1, 1, w - 2, h - 2, 10, 10)
                 popup.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
                 pos = self.mapToGlobal(self.rect().bottomLeft())
