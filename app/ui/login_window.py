@@ -356,11 +356,18 @@ class ForgotPasswordDialog(QDialog):
         if not hint:
             _toast(self, "未设置密码提示", "warn")
             return
-        # 用独立 QDialog + 显式设置每个控件样式
+        # 用 parent=None 避免继承样式，但居中到父窗口位置
         dialog = QDialog(None)
         dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
         dialog.setFixedSize(380, 200)
         dialog.setWindowTitle("密码提示")
+
+        # 居中到父窗口
+        parent = self.parent() or self
+        if parent:
+            px = parent.x() + (parent.width() - 380) // 2
+            py = parent.y() + (parent.height() - 200) // 2
+            dialog.move(px, py)
 
         layout = QVBoxLayout(dialog)
         layout.setSpacing(14)
@@ -368,33 +375,32 @@ class ForgotPasswordDialog(QDialog):
 
         title = QLabel("密码提示")
         title.setFont(QFont("Microsoft YaHei", 15, QFont.DemiBold))
-        title.setStyleSheet("color: #1a1a1a;")
         layout.addWidget(title)
 
-        hint_label = QLabel()
-        hint_label.setText(hint)
-        hint_label.setFont(QFont("Microsoft YaHei", 12))
+        hint_label = QLabel(hint)
+        hint_label.setFont(QFont("Microsoft YaHei", 13))
         hint_label.setWordWrap(True)
         hint_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        hint_label.setStyleSheet("color: #333; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px;")
         layout.addWidget(hint_label)
 
         layout.addStretch()
 
         ok_btn = QPushButton("确定")
-        ok_btn.setFont(QFont("Microsoft YaHei", 11))
         ok_btn.setFixedSize(100, 36)
         ok_btn.setCursor(Qt.PointingHandCursor)
-        ok_btn.setStyleSheet("""
-            QPushButton {
-                background: #0078d4; color: white; border: none;
-                border-radius: 6px; font-weight: 600;
-            }
-            QPushButton:hover { background: #106ebe; }
-            QPushButton:pressed { background: #005a9e; }
-        """)
         ok_btn.clicked.connect(dialog.accept)
         layout.addWidget(ok_btn, alignment=Qt.AlignRight)
+
+        # 一次性设置整个对话框样式（不依赖继承）
+        dialog.setStyleSheet("""
+            QDialog { background: white; color: #1a1a1a; }
+            QLabel { color: #1a1a1a; background: transparent; font-size: 13px; }
+            QPushButton {
+                background: #0078d4; color: white; border: none;
+                border-radius: 6px; font-size: 13px; font-weight: 600;
+            }
+            QPushButton:hover { background: #106ebe; }
+        """)
 
         dialog.exec_()
 

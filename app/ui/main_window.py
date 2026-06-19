@@ -337,11 +337,14 @@ class MainWindow(QMainWindow):
         class WideCombo(QComboBox):
             """下拉宽度与控件一致的 ComboBox"""
             def showPopup(self):
-                self.view().setMinimumWidth(self.width())
+                # 下拉宽度至少和控件一样宽
+                w = max(self.width(), 200)
+                self.view().setMinimumWidth(w)
                 super().showPopup()
 
         self._group_combo = WideCombo()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
+        self._group_combo.setMinimumWidth(150)
         self._group_combo.setStyleSheet(_get_combo_style())
         # 下拉视图单独设置样式
         from PyQt5.QtWidgets import QListView
