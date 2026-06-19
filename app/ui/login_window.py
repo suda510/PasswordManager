@@ -54,7 +54,7 @@ def _toast(parent, message, level="info"):
     label.setFixedHeight(30)
     label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 4px; }}")
 
-    label.move(250, 26)
+    label.move(320, 26)
     label.raise_()
     label.show()
 
