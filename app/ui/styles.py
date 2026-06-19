@@ -93,14 +93,20 @@ GROUP_LIST_STYLE = """
         height: 40px;
         padding: 0 14px;
         border-radius: 6px;
-        margin: 1px 2px;
+        margin: 2px 4px;
+        border: none;
+        outline: none;
     }
     QListWidget::item:selected, QListView::item:selected {
         background: #e8f0fe;
         color: #0078d4;
+        border: none;
+        outline: none;
     }
     QListWidget::item:hover, QListView::item:hover {
         background: #f5f5f5;
+        border: none;
+        outline: none;
     }
 """
 
