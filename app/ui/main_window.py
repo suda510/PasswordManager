@@ -335,9 +335,12 @@ class MainWindow(QMainWindow):
         self._group_combo = QComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
         self._group_combo.setStyleSheet(_get_combo_style())
-        view = self._group_combo.view()
+        # 下拉视图单独设置样式（QSS 中 QAbstractItemView 不生效）
+        from PyQt5.QtWidgets import QListView
+        view = QListView()
         view.setStyleSheet(GROUP_LIST_STYLE)
         view.setSpacing(2)
+        self._group_combo.setView(view)
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
@@ -783,6 +786,7 @@ class MainWindow(QMainWindow):
         if self._search_input.text().strip():
             self._do_search()
             return
+        self._entry_list.setUpdatesEnabled(False)
         self._entry_list.clear()
         self._card_widgets.clear()
         self._current_entry = None
@@ -792,6 +796,7 @@ class MainWindow(QMainWindow):
             self._entries = self._db.get_all_entries()
         for entry in self._entries:
             self._add_list_item(entry)
+        self._entry_list.setUpdatesEnabled(True)
         self._clear_detail()
 
     def _on_search(self, text: str):
@@ -804,6 +809,8 @@ class MainWindow(QMainWindow):
         if not text.strip():
             self._load_entries()
             return
+        # 批量更新，减少重绘
+        self._entry_list.setUpdatesEnabled(False)
         self._entry_list.clear()
         self._card_widgets.clear()
         self._current_entry = None
@@ -813,6 +820,7 @@ class MainWindow(QMainWindow):
         self._entries = results
         for entry in self._entries:
             self._add_list_item(entry)
+        self._entry_list.setUpdatesEnabled(True)
         self._clear_detail()
 
     def _update_card_selection(self, selected_id: str):
@@ -857,6 +865,8 @@ class MainWindow(QMainWindow):
         value.setFont(QFont("Microsoft YaHei", 13))
         value.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
         value.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        if field_name == "url":
+            value.setOpenExternalLinks(True)
         val_row.addWidget(value, stretch=1)
 
         setattr(self, f"_{field_name}_value", value)

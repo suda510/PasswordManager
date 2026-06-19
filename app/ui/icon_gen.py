@@ -204,29 +204,27 @@ def create_copy_icon() -> QIcon:
 
 
 def create_eye_icon(is_open=True) -> QIcon:
-    """眼睛图标"""
+    """眼睛图标（简洁版）"""
     def draw(p, s):
         cx, cy = s / 2, s / 2
-        pen = QPen(QColor("#999"), s * 0.08)
+        color = QColor("#888")
+        # 眼睛轮廓（椭圆）
+        pen = QPen(color, max(1, s * 0.09))
         pen.setCapStyle(Qt.RoundCap)
         p.setPen(pen)
         p.setBrush(Qt.NoBrush)
-        # 眼睛轮廓
-        path = QPainterPath()
-        path.moveTo(s * 0.1, cy)
-        path.cubicTo(s * 0.3, cy - s * 0.3, s * 0.7, cy - s * 0.3, s * 0.9, cy)
-        path.cubicTo(s * 0.7, cy + s * 0.3, s * 0.3, cy + s * 0.3, s * 0.1, cy)
-        p.drawPath(path)
-        # 瞳孔
-        p.setBrush(QColor("#999"))
-        p.setPen(Qt.NoPen)
-        r = s * 0.12
-        p.drawEllipse(int(cx - r), int(cy - r), int(r * 2), int(r * 2))
-        if not is_open:
-            pen = QPen(QColor("#999"), s * 0.1)
-            pen.setCapStyle(Qt.RoundCap)
-            p.setPen(pen)
-            p.drawLine(int(s * 0.15), int(s * 0.85), int(s * 0.85), int(s * 0.15))
+        rx, ry = s * 0.35, s * 0.2
+        p.drawEllipse(int(cx - rx), int(cy - ry), int(rx * 2), int(ry * 2))
+        if is_open:
+            # 瞳孔（实心圆）
+            p.setBrush(color)
+            p.setPen(Qt.NoPen)
+            r = s * 0.11
+            p.drawEllipse(int(cx - r), int(cy - r), int(r * 2), int(r * 2))
+        else:
+            # 闭眼（横线）
+            p.setPen(QPen(color, max(1, s * 0.09)))
+            p.drawLine(int(cx - rx), int(cy), int(cx + rx), int(cy))
 
     icon = QIcon()
     for sz in (16, 20, 24):
