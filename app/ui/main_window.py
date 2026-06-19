@@ -170,11 +170,21 @@ class MainWindow(FluentWindow):
         self.resize(960, 640)
         self.setMinimumSize(760, 480)
 
+        # 隐藏返回按钮（只有一个页面，不需要）
+        self.navigationInterface.setReturnButtonVisible(False)
+
         self._home_page = self._create_home_page()
         self._home_page.setObjectName("homePage")
         self.addSubInterface(self._home_page, FIF.HOME, "主页")
 
         # 底部导航
+        self.navigationInterface.addItem(
+            routeKey="lock",
+            icon=FIF.FINGERPRINT,
+            text="锁定",
+            onClick=self._on_lock,
+            position=NavigationItemPosition.BOTTOM,
+        )
         self.navigationInterface.addItem(
             routeKey="export",
             icon=FIF.SAVE,
@@ -887,6 +897,11 @@ class MainWindow(FluentWindow):
             self._load_entries()
             self._refresh_groups()
             self._show_info("条目已删除")
+
+    def _on_lock(self):
+        """锁定：关闭数据库连接，返回登录界面"""
+        self._db.close()
+        self.logout.emit()
 
     def _on_export(self):
         """导出数据为 CSV"""
