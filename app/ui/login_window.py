@@ -12,9 +12,8 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QLineEdit,
     QDialog,
-    QMessageBox,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QMouseEvent
 
 from app.core.crypto import (
@@ -40,6 +39,101 @@ from app.ui.styles import (
     DIALOG_WIDTH,
     PRIMARY_COLOR,
 )
+
+
+class Toast(QWidget):
+    """右上角自动消失的通知"""
+
+    _active = []  # 防止被 GC 回收
+
+    def __init__(self, parent, message, duration=2500, level="info"):
+        super().__init__(parent)
+        Toast._active.append(self)
+
+        colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
+        bg = colors.get(level, "#323232")
+
+        self.setFixedSize(300, 44)
+        self.setStyleSheet(f"background: {bg}; border-radius: 8px; border: none;")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 0, 16, 0)
+        layout.setSpacing(8)
+
+        icon_text = {"info": "✓", "error": "✕", "warn": "!"}.get(level, "✓")
+        icon = QLabel(icon_text)
+        icon.setFont(QFont("Microsoft YaHei", 12, QFont.Bold))
+        icon.setStyleSheet("color: white; background: transparent; border: none;")
+        layout.addWidget(icon)
+
+        label = QLabel(message)
+        label.setFont(QFont("Microsoft YaHei", 11))
+        label.setStyleSheet("color: white; background: transparent; border: none;")
+        layout.addWidget(label, stretch=1)
+
+        # 定位到右上角
+        self.move(parent.width() - self.width() - 16, 16)
+        self.raise_()
+        self.show()
+
+        QTimer.singleShot(duration, self._close)
+
+    def _close(self):
+        if self in Toast._active:
+            Toast._active.remove(self)
+        self.close()
+        self.deleteLater()
+
+
+def _toast(parent, message, level="info"):
+    Toast(parent, message, level=level)
+
+
+def _confirm(parent, title, message):
+    """自定义确认对话框，返回 True/False"""
+    dialog = QDialog(parent)
+    dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+    dialog.setFixedSize(380, 180)
+    dialog.setWindowTitle(title)
+    if parent:
+        dialog.setWindowIcon(parent.windowIcon())
+
+    layout = QVBoxLayout(dialog)
+    layout.setSpacing(12)
+    layout.setContentsMargins(28, 20, 28, 20)
+
+    t = QLabel(title)
+    t.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
+    t.setStyleSheet("color: #1a1a1a; background: transparent;")
+    layout.addWidget(t)
+
+    m = QLabel(message)
+    m.setFont(QFont("Microsoft YaHei", 11))
+    m.setStyleSheet("color: #666; background: transparent;")
+    m.setWordWrap(True)
+    layout.addWidget(m)
+
+    layout.addStretch()
+
+    btn_row = QHBoxLayout()
+    btn_row.setSpacing(8)
+    btn_row.addStretch()
+
+    cancel = QPushButton("取消")
+    cancel.setStyleSheet(BTN_STYLE)
+    cancel.setFixedHeight(BTN_MIN_HEIGHT)
+    cancel.clicked.connect(dialog.reject)
+
+    ok = QPushButton("确定")
+    ok.setStyleSheet(PRIMARY_BTN_STYLE)
+    ok.setFixedHeight(BTN_MIN_HEIGHT)
+    ok.clicked.connect(dialog.accept)
+
+    btn_row.addWidget(cancel)
+    btn_row.addWidget(ok)
+    layout.addLayout(btn_row)
+
+    return dialog.exec_() == QDialog.Accepted
 
 
 class RecoveryKeyDialog(QDialog):
@@ -110,7 +204,7 @@ class RecoveryKeyDialog(QDialog):
     def _copy_key(self):
         from app.utils.clipboard import copy_to_clipboard
         copy_to_clipboard(self._recovery_key)
-        QMessageBox.information(self, "成功", "恢复密钥已复制到剪贴板")
+        _toast(self, "恢复密钥已复制到剪贴板")
 
 
 class ForgotPasswordDialog(QDialog):
@@ -193,42 +287,41 @@ class ForgotPasswordDialog(QDialog):
         confirm = self._confirm_password_input.text()
 
         if not recovery_key:
-            QMessageBox.warning(self, "提示", "请输入恢复密钥")
+            _toast(self, "请输入恢复密钥", "warn")
             return
 
         if len(new_password) < 6:
-            QMessageBox.warning(self, "提示", "新密码至少 6 个字符")
+            _toast(self, "新密码至少 6 个字符", "warn")
             return
 
         if new_password != confirm:
-            QMessageBox.warning(self, "提示", "两次输入的密码不一致")
+            _toast(self, "两次输入的密码不一致", "warn")
             return
 
         stored_hash = self._config.get("recovery_key_hash")
         if not stored_hash:
-            QMessageBox.critical(self, "错误", "未设置恢复密钥")
+            _toast(self, "未设置恢复密钥", "error")
             return
 
         try:
             salt = self._config.get_salt()
             iterations = self._config.get_iterations()
         except ValueError as e:
-            QMessageBox.critical(self, "错误", str(e))
+            _toast(self, str(e), "error")
             return
 
         if not verify_recovery_key(recovery_key, salt, stored_hash, iterations):
-            QMessageBox.critical(self, "错误", "恢复密钥错误")
+            _toast(self, "恢复密钥错误", "error")
             return
 
         # 警告：重置密码后旧数据将无法解密
-        warn = QMessageBox.warning(
-            self, "警告",
+        if not _confirm(
+            self,
+            "警告",
             "重置主密码后，之前保存的所有密码数据将无法解密。\n\n"
             "这是由于密码加密机制的限制。\n"
             "确定要继续吗？",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-        )
-        if warn != QMessageBox.Yes:
+        ):
             return
 
         new_salt = generate_salt()
@@ -246,25 +339,22 @@ class ForgotPasswordDialog(QDialog):
         self._new_key = new_key
         self._new_recovery = new_recovery
 
-        QMessageBox.information(self, "成功", "密码已重置")
+        _toast(self, "密码已重置")
         self.accept()
 
     def _show_hint(self):
         hint = self._config.get("password_hint")
         if hint:
-            QMessageBox.information(self, "密码提示", hint)
+            _toast(self, f"密码提示：{hint}")
         else:
-            QMessageBox.warning(self, "提示", "未设置密码提示")
+            _toast(self, "未设置密码提示", "warn")
 
     def _on_reset_all(self):
-        reply = QMessageBox.warning(
+        if _confirm(
             self,
             "确认清除",
             "此操作将删除所有密码数据，不可恢复！\n\n确定要继续吗？",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if reply == QMessageBox.Yes:
+        ):
             self._config.clear_all()
             self.accept()
 
@@ -305,10 +395,10 @@ class LoginWindow(QWidget):
         event.accept()
 
     def _show_info(self, message: str):
-        QMessageBox.information(self, "成功", message)
+        _toast(self, message)
 
     def _show_error(self, message: str):
-        QMessageBox.critical(self, "错误", message)
+        _toast(self, message, "error")
 
     def _show_welcome(self):
         """首次使用弹出欢迎提示"""
