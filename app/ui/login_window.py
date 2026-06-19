@@ -336,10 +336,11 @@ class LoginWindow(QWidget):
         # 图标
         from app.ui.icon_gen import create_app_icon
         icon_label = QLabel()
-        icon_label.setPixmap(create_app_icon().pixmap(64, 64))
+        icon_label.setFixedSize(72, 72)
         icon_label.setAlignment(Qt.AlignCenter)
         icon_label.setStyleSheet("background: transparent; border: none;")
-        layout.addWidget(icon_label)
+        icon_label.setPixmap(create_app_icon().pixmap(64, 64))
+        layout.addWidget(icon_label, alignment=Qt.AlignCenter)
 
         # 标题（渐变效果）
         title = QLabel("密码管理器")
