@@ -577,7 +577,6 @@ class MainWindow(QMainWindow):
 
     def _setup_toolbar(self):
         """创建底部按钮栏（卡片式）"""
-        # 卡片容器
         card = QFrame()
         card.setStyleSheet("""
             QFrame {
@@ -587,7 +586,7 @@ class MainWindow(QMainWindow):
             }
         """)
         card_layout = QHBoxLayout(card)
-        card_layout.setContentsMargins(8, 8, 8, 8)
+        card_layout.setContentsMargins(12, 8, 12, 8)
         card_layout.setSpacing(4)
 
         btn_style = """
@@ -595,7 +594,7 @@ class MainWindow(QMainWindow):
                 background: transparent;
                 border: none;
                 border-radius: 8px;
-                padding: 10px 20px;
+                padding: 10px 24px;
                 font-family: "Microsoft YaHei";
                 font-size: 13px;
                 color: #1a1a1a;
@@ -619,8 +618,16 @@ class MainWindow(QMainWindow):
 
         # 底部状态栏
         status = self.statusBar()
-        status.setStyleSheet("background: #f5f5f5; border: none;")
-        status.setContentsMargins(20, 8, 20, 8)
+        status.setStyleSheet("""
+            QStatusBar {
+                background: #f5f5f5;
+                border: none;
+            }
+            QStatusBar::item {
+                border: none;
+            }
+        """)
+        status.setContentsMargins(20, 8, 20, 12)
         status.addWidget(card, stretch=1)
 
     # ── 分组管理 ──
