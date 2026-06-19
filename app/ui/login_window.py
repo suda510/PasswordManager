@@ -46,8 +46,11 @@ def _toast(parent, message, level="info", duration=2500):
     colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
     bg = colors.get(level, "#323232")
 
+    # 截断过长文字
+    display = message if len(message) <= 25 else message[:25] + "..."
+
     label = QLabel(parent)
-    label.setText(f" {message} ")
+    label.setText(f" {display} ")
     label.setFont(QFont("Microsoft YaHei", 10))
     label.adjustSize()
     label.setFixedHeight(30)
