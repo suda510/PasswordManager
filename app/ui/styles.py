@@ -66,15 +66,14 @@ COMBO_STYLE = """
         padding: 6px;
     }
     QComboBox QAbstractItemView::item {
-        height: 44px;
+        height: 40px;
         padding: 0 14px;
-        border-radius: 8px;
-        margin: 2px 0;
+        border-radius: 6px;
+        margin: 2px 4px;
     }
     QComboBox QAbstractItemView::item:selected {
         background: #e8f0fe;
         color: #0078d4;
-        border-left: 3px solid #0078d4;
     }
     QComboBox QAbstractItemView::item:hover {
         background: #f5f5f5;

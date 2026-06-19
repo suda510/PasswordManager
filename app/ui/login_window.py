@@ -63,9 +63,9 @@ def _toast(parent, message, level="info"):
 
 def _confirm(parent, title, message):
     """自定义确认对话框，返回 True/False"""
-    dialog = QDialog(parent)
-    dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-    dialog.setFixedSize(380, 180)
+    dialog = QDialog(None)  # parent=None 避免继承父窗口拖拽
+    dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint)
+    dialog.setFixedSize(400, 200)
     dialog.setWindowTitle(title)
     dialog.setStyleSheet("""
         QDialog { background: white; }
@@ -74,8 +74,12 @@ def _confirm(parent, title, message):
             border-radius: 6px; padding: 8px 20px; font-size: 13px;
         }
     """)
+
+    # 居中到父窗口
     if parent:
-        dialog.setWindowIcon(parent.windowIcon())
+        px = parent.x() + (parent.width() - 400) // 2
+        py = parent.y() + (parent.height() - 200) // 2
+        dialog.move(px, py)
 
     layout = QVBoxLayout(dialog)
     layout.setSpacing(12)
