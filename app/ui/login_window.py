@@ -341,10 +341,54 @@ class ForgotPasswordDialog(QDialog):
 
     def _show_hint(self):
         hint = self._config.get("password_hint")
-        if hint:
-            _toast(self, f"密码提示：{hint}", duration=5000)
-        else:
+        if not hint:
             _toast(self, "未设置密码提示", "warn")
+            return
+        # 自定义弹框，样式与 _confirm 统一
+        dialog = QDialog(None)
+        dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+        dialog.setFixedSize(400, 200)
+        dialog.setWindowTitle("密码提示")
+        dialog.setStyleSheet("""
+            QDialog { background: white; }
+            QLabel { color: #1a1a1a; background: transparent; }
+            QPushButton {
+                background: #0078d4; color: white; border: none;
+                border-radius: 6px; padding: 8px 20px; font-size: 13px; font-weight: 600;
+            }
+            QPushButton:hover { background: #106ebe; }
+        """)
+
+        # 居中到父窗口
+        parent = self.parent() or self
+        if parent:
+            px = parent.x() + (parent.width() - 400) // 2
+            py = parent.y() + (parent.height() - 200) // 2
+            dialog.move(px, py)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(12)
+        layout.setContentsMargins(28, 20, 28, 20)
+
+        title = QLabel("密码提示")
+        title.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
+        layout.addWidget(title)
+
+        hint_label = QLabel(hint)
+        hint_label.setFont(QFont("Microsoft YaHei", 12))
+        hint_label.setWordWrap(True)
+        hint_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        hint_label.setStyleSheet("color: #333; background: #f8f8f8; border: 1px solid #eee; border-radius: 6px; padding: 10px;")
+        layout.addWidget(hint_label)
+
+        layout.addStretch()
+
+        ok_btn = QPushButton("确定")
+        ok_btn.setFixedHeight(BTN_MIN_HEIGHT)
+        ok_btn.clicked.connect(dialog.accept)
+        layout.addWidget(ok_btn, alignment=Qt.AlignRight)
+
+        dialog.exec_()
 
     def _on_reset_all(self):
         if _confirm(
