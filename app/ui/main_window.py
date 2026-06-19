@@ -4,6 +4,7 @@
 """
 
 import hashlib
+import html as html_mod
 
 from PyQt5.QtWidgets import (
     QWidget,
@@ -159,6 +160,7 @@ class MainWindow(FluentWindow):
         self._config = config
         self._current_entry = None
         self._card_widgets: dict[str, EntryCardWidget] = {}
+        self._password_visible = False
         self._search_debounce = QTimer()
         self._search_debounce.setSingleShot(True)
         self._search_debounce.timeout.connect(self._do_search)
@@ -582,14 +584,19 @@ class MainWindow(FluentWindow):
 
             if rename_dialog.exec_():
                 new_name = new_name_line.text().strip()
-                if new_name and new_name != old_name:
-                    self._db.rename_group(old_name, new_name)
-                    self._config.rename_custom_group(old_name, new_name)
-                    self._refresh_groups()
-                    self._load_entries()
-                    refresh_list()
-                    InfoBar.success(title="成功", content=f'已重命名为 "{new_name}"',
+                if not new_name or new_name == old_name:
+                    return
+                if new_name in self._get_all_groups():
+                    InfoBar.warning(title="提示", content="该分组名已存在",
                                     position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                    return
+                self._db.rename_group(old_name, new_name)
+                self._config.rename_custom_group(old_name, new_name)
+                self._refresh_groups()
+                self._load_entries()
+                refresh_list()
+                InfoBar.success(title="成功", content=f'已重命名为 "{new_name}"',
+                                position=InfoBarPosition.TOP, duration=2000, parent=dialog)
 
         rename_btn.clicked.connect(on_rename)
 
@@ -635,6 +642,10 @@ class MainWindow(FluentWindow):
         return QSize(200, 60)
 
     def _load_entries(self):
+        # 若搜索框有文本，走搜索逻辑
+        if self._search_input.text().strip():
+            self._do_search()
+            return
         self._entry_list.clear()
         self._card_widgets.clear()
         self._current_entry = None
@@ -715,7 +726,6 @@ class MainWindow(FluentWindow):
 
         # 密码显隐切换
         if has_toggle:
-            self._password_visible = False
             toggle_btn = ToolButton()
             toggle_btn.setFixedSize(26, 26)
             toggle_btn.setIcon(FIF.HIDE.icon())
@@ -804,8 +814,10 @@ class MainWindow(FluentWindow):
 
         # 网址（有内容才显示）
         if entry.url:
+            safe_url = html_mod.escape(entry.url, quote=True)
+            safe_text = html_mod.escape(entry.url)
             self._url_value.setText(
-                f'<a href="{entry.url}" style="color:#0078d4;text-decoration:none;">{entry.url}</a>'
+                f'<a href="{safe_url}" style="color:#0078d4;text-decoration:none;">{safe_text}</a>'
             )
             self._url_block.show()
         else:
@@ -899,8 +911,7 @@ class MainWindow(FluentWindow):
             self._show_info("条目已删除")
 
     def _on_lock(self):
-        """锁定：关闭数据库连接，返回登录界面"""
-        self._db.close()
+        """锁定：返回登录界面（数据库由 main.py handler 关闭）"""
         self.logout.emit()
 
     def _on_export(self):
@@ -956,8 +967,12 @@ class MainWindow(FluentWindow):
 
         password = pwd_input.text()
         stored_hash = self._config.get("master_password_hash")
-        salt = bytes.fromhex(self._config.get("salt"))
-        iterations = int(self._config.get("kdf_iterations"))
+        try:
+            salt = self._config.get_salt()
+            iterations = self._config.get_iterations()
+        except ValueError as e:
+            InfoBar.error(title="错误", content=str(e), position=InfoBarPosition.TOP, duration=2000, parent=self)
+            return
 
         if not verify_master_password(password, salt, stored_hash, iterations):
             InfoBar.error(title="错误", content="主密码错误",
@@ -980,7 +995,7 @@ class MainWindow(FluentWindow):
 
         # ── 第三步：选择保存路径 ──
         path, _ = QFileDialog.getSaveFileName(
-            self, "导出数据", "passwords.csv",
+            self, "导出数据", "data_export.csv",
             "CSV 文件 (*.csv);;所有文件 (*)",
         )
         if not path:
@@ -1084,8 +1099,12 @@ class MainWindow(FluentWindow):
 
             # 验证当前密码
             stored_hash = self._config.get("master_password_hash")
-            salt = bytes.fromhex(self._config.get("salt"))
-            iterations = int(self._config.get("kdf_iterations"))
+            try:
+                salt = self._config.get_salt()
+                iterations = self._config.get_iterations()
+            except ValueError as e:
+                InfoBar.error(title="错误", content=str(e), position=InfoBarPosition.TOP, duration=2000, parent=dialog)
+                return
 
             if not verify_master_password(cur_password, salt, stored_hash, iterations):
                 InfoBar.error(title="错误", content="当前密码错误", position=InfoBarPosition.TOP, duration=2000, parent=dialog)

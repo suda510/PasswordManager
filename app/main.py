@@ -54,6 +54,7 @@ def main():
                 """修改密码后重新登录"""
                 main_window.close()
                 db.close()
+                config.close()
                 create_login_window()
 
             main_window.logout.connect(on_logout)
@@ -63,6 +64,7 @@ def main():
             login_window.close()
             # 重新打开配置管理器
             nonlocal config
+            config.close()
             config = ConfigManager()
             create_login_window()
 
@@ -72,7 +74,9 @@ def main():
 
     create_login_window()
 
-    sys.exit(app.exec_())
+    ret = app.exec_()
+    config.close()
+    sys.exit(ret)
 
 
 if __name__ == "__main__":
