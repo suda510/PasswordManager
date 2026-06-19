@@ -263,6 +263,12 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._load_entries()
 
+    def moveEvent(self, event):
+        """主窗口移动时关闭下拉框"""
+        if hasattr(self, '_group_combo') and self._group_combo._popup:
+            self._group_combo._popup.close()
+        super().moveEvent(event)
+
     def _setup_ui(self):
         self.setWindowTitle("密码管理器")
         self.resize(960, 640)
@@ -319,13 +325,13 @@ class MainWindow(QMainWindow):
             _popup = None
 
             def showPopup(self):
-                if self._popup:
+                # 已打开则关闭（切换行为）
+                if self._popup and self._popup.isVisible():
                     self._popup.close()
-                    self._popup = None
+                    return
 
                 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
 
-                # 用 Qt.Tool 避免原生 popup 边框
                 popup = QWidget(None, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
                 popup.setAttribute(Qt.WA_TranslucentBackground)
                 popup.setFocusPolicy(Qt.NoFocus)
@@ -383,6 +389,11 @@ class MainWindow(QMainWindow):
                         QApplication.instance().focusChanged.disconnect(on_focus_change)
 
                 QApplication.instance().focusChanged.connect(on_focus_change)
+
+            def closePopup(self):
+                if self._popup:
+                    self._popup.close()
+                super().closePopup()
 
         self._group_combo = AutoWidthCombo()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
