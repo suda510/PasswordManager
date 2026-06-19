@@ -356,53 +356,14 @@ class ForgotPasswordDialog(QDialog):
         if not hint:
             _toast(self, "未设置密码提示", "warn")
             return
-        # 用 parent=None 避免继承样式，但居中到父窗口位置
-        dialog = QDialog(None)
-        dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
-        dialog.setFixedSize(380, 200)
-        dialog.setWindowTitle("密码提示")
-
-        # 居中到父窗口
-        parent = self.parent() or self
-        if parent:
-            px = parent.x() + (parent.width() - 380) // 2
-            py = parent.y() + (parent.height() - 200) // 2
-            dialog.move(px, py)
-
-        layout = QVBoxLayout(dialog)
-        layout.setSpacing(14)
-        layout.setContentsMargins(28, 24, 28, 24)
-
-        title = QLabel("密码提示")
-        title.setFont(QFont("Microsoft YaHei", 15, QFont.DemiBold))
-        layout.addWidget(title)
-
-        hint_label = QLabel(hint)
-        hint_label.setFont(QFont("Microsoft YaHei", 13))
-        hint_label.setWordWrap(True)
-        hint_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        layout.addWidget(hint_label)
-
-        layout.addStretch()
-
-        ok_btn = QPushButton("确定")
-        ok_btn.setFixedSize(100, 36)
-        ok_btn.setCursor(Qt.PointingHandCursor)
-        ok_btn.clicked.connect(dialog.accept)
-        layout.addWidget(ok_btn, alignment=Qt.AlignRight)
-
-        # 一次性设置整个对话框样式（不依赖继承）
-        dialog.setStyleSheet("""
-            QDialog { background: white; color: #1a1a1a; }
-            QLabel { color: #1a1a1a; background: transparent; font-size: 13px; }
-            QPushButton {
-                background: #0078d4; color: white; border: none;
-                border-radius: 6px; font-size: 13px; font-weight: 600;
-            }
-            QPushButton:hover { background: #106ebe; }
-        """)
-
-        dialog.exec_()
+        # 直接用最简单的弹窗，不设置任何样式表
+        from PyQt5.QtWidgets import QMessageBox
+        mb = QMessageBox(self)
+        mb.setWindowTitle("密码提示")
+        mb.setText(f"<b>密码提示</b><br><br><span style='font-size:14px;'>{hint}</span>")
+        mb.setIcon(QMessageBox.Information)
+        mb.setStandardButtons(QMessageBox.Ok)
+        mb.exec_()
 
     def _on_reset_all(self):
         if _confirm(
