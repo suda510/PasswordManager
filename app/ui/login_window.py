@@ -44,24 +44,16 @@ from app.ui.styles import (
 
 def _toast(parent, message, level="info"):
     """标题右侧自动消失的通知"""
-    from PyQt5.QtGui import QPalette, QColor
-
-    colors = {"info": QColor(50, 50, 50), "error": QColor(232, 17, 35), "warn": QColor(216, 59, 1)}
-    bg = colors.get(level, QColor(50, 50, 50))
+    colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
+    bg = colors.get(level, "#323232")
 
     label = QLabel(parent)
     label.setText(f" {message} ")
     label.setFont(QFont("Microsoft YaHei", 10))
     label.adjustSize()
     label.setFixedHeight(30)
+    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 4px; }}")
 
-    pal = label.palette()
-    pal.setColor(QPalette.Window, bg)
-    pal.setColor(QPalette.WindowText, QColor(255, 255, 255))
-    label.setPalette(pal)
-    label.setAutoFillBackground(True)
-
-    # 定位到标题右侧
     label.move(160, 12)
     label.raise_()
     label.show()
