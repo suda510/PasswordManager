@@ -1,5 +1,18 @@
 """公共样式定义"""
 
+import os
+import sys
+
+
+def get_combo_style() -> str:
+    """获取带正确箭头路径的下拉框样式"""
+    if hasattr(sys, '_MEIPASS'):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    arrow_path = os.path.join(base, 'assets', 'arrow.png').replace('\\', '/')
+    return COMBO_STYLE.replace('%ARROW_PATH%', arrow_path)
+
 PRIMARY_COLOR = "#0078d4"
 PRIMARY_HOVER = "#106ebe"
 PRIMARY_PRESSED = "#005a9e"

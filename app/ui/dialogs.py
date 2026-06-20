@@ -9,8 +9,6 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QComboBox,
     QPushButton,
-    QMessageBox,
-    QFrame,
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
@@ -21,21 +19,11 @@ from app.ui.styles import (
     BTN_STYLE,
     LABEL_STYLE,
     INPUT_STYLE,
-    COMBO_STYLE,
     INPUT_MIN_HEIGHT,
     BTN_MIN_HEIGHT,
     DIALOG_WIDTH,
+    get_combo_style,
 )
-
-
-def _get_combo_style() -> str:
-    import os, sys
-    if hasattr(sys, '_MEIPASS'):
-        base = sys._MEIPASS
-    else:
-        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    arrow_path = os.path.join(base, 'assets', 'arrow.png').replace('\\', '/')
-    return COMBO_STYLE.replace('%ARROW_PATH%', arrow_path)
 
 
 class AddEditDialog(QDialog):
@@ -96,7 +84,7 @@ class AddEditDialog(QDialog):
         layout.addWidget(group_label)
         self._group_combo = QComboBox()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
-        self._group_combo.setStyleSheet(_get_combo_style())
+        self._group_combo.setStyleSheet(get_combo_style())
         self._group_combo.addItem("（无分组）", "")
         for g in self._groups:
             self._group_combo.addItem(g, g)
