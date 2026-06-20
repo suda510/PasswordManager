@@ -298,8 +298,51 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(content, stretch=1)
 
-        # 底部工具栏
-        self._setup_toolbar()
+        # 底部按钮栏（与内容区对齐）
+        bottom = QWidget()
+        bottom.setStyleSheet("background: #f5f5f5;")
+        bottom_layout = QHBoxLayout(bottom)
+        bottom_layout.setContentsMargins(20, 8, 20, 12)
+
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 10px;
+            }
+        """)
+        card_layout = QHBoxLayout(card)
+        card_layout.setContentsMargins(12, 8, 12, 8)
+        card_layout.setSpacing(4)
+
+        btn_style = """
+            QPushButton {
+                background: transparent;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 24px;
+                font-family: "Microsoft YaHei";
+                font-size: 13px;
+                color: #1a1a1a;
+            }
+            QPushButton:hover { background: #f0f0f0; }
+        """
+
+        for text, handler in [
+            ("导出数据", self._on_export),
+            ("修改主密码", self._on_change_password),
+            ("关于", self._on_about),
+            ("锁定", self._on_lock),
+        ]:
+            btn = QPushButton(text)
+            btn.setStyleSheet(btn_style)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(handler)
+            card_layout.addWidget(btn)
+
+        bottom_layout.addWidget(card)
+        main_layout.addWidget(bottom)
 
     def _create_left_panel(self) -> QWidget:
         """创建左侧面板：搜索 + 分组 + 列表 + 按钮"""
@@ -574,61 +617,6 @@ class MainWindow(QMainWindow):
 
         right_layout.addLayout(self._detail_stack, stretch=1)
         return right_panel
-
-    def _setup_toolbar(self):
-        """创建底部按钮栏（卡片式）"""
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background: white;
-                border: 1px solid #e0e0e0;
-                border-radius: 10px;
-            }
-        """)
-        card_layout = QHBoxLayout(card)
-        card_layout.setContentsMargins(12, 8, 12, 8)
-        card_layout.setSpacing(4)
-
-        btn_style = """
-            QPushButton {
-                background: transparent;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 24px;
-                font-family: "Microsoft YaHei";
-                font-size: 13px;
-                color: #1a1a1a;
-            }
-            QPushButton:hover {
-                background: #f0f0f0;
-            }
-        """
-
-        for text, handler in [
-            ("导出数据", self._on_export),
-            ("修改主密码", self._on_change_password),
-            ("关于", self._on_about),
-            ("锁定", self._on_lock),
-        ]:
-            btn = QPushButton(text)
-            btn.setStyleSheet(btn_style)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.clicked.connect(handler)
-            card_layout.addWidget(btn)
-
-        # 底部状态栏
-        status = self.statusBar()
-        status.setStyleSheet("""
-            QStatusBar {
-                background: #f5f5f5;
-                border: none;
-            }
-            QStatusBar::item {
-                border: none;
-            }
-        """)
-        status.setContentsMargins(20, 8, 20, 12)
-        status.addWidget(card, stretch=1)
 
     # ── 分组管理 ──
 
