@@ -484,9 +484,7 @@ class LoginWindow(QWidget):
         for emoji, title_text, desc_text in features:
             row = QHBoxLayout()
             row.setSpacing(12)
-
-            # 左侧弹性空间
-            row.addStretch()
+            row.setAlignment(Qt.AlignCenter)
 
             emoji_label = QLabel(emoji)
             emoji_label.setFont(QFont("Microsoft YaHei", 20))
@@ -495,7 +493,11 @@ class LoginWindow(QWidget):
             emoji_label.setStyleSheet("background: transparent; border: none;")
             row.addWidget(emoji_label)
 
-            text_col = QVBoxLayout()
+            # 固定宽度文字列，确保对齐
+            text_widget = QWidget()
+            text_widget.setFixedWidth(220)
+            text_col = QVBoxLayout(text_widget)
+            text_col.setContentsMargins(0, 0, 0, 0)
             text_col.setSpacing(2)
 
             ft = QLabel(title_text)
@@ -508,10 +510,7 @@ class LoginWindow(QWidget):
             fd.setStyleSheet("color: #888; background: transparent; border: none;")
             text_col.addWidget(fd)
 
-            row.addLayout(text_col)
-
-            # 右侧弹性空间
-            row.addStretch()
+            row.addWidget(text_widget)
             layout.addLayout(row)
 
         layout.addSpacing(8)
