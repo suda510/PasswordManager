@@ -20,17 +20,14 @@ from PyQt5.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
     QStackedLayout,
-    QToolBar,
     QToolButton,
     QComboBox,
     QPushButton,
-    QAction,
     QFileDialog,
     QDialog,
-    QSizeGrip,
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QSize
-from PyQt5.QtGui import QFont, QColor, QIcon
+from PyQt5.QtGui import QFont, QColor
 
 from app.core.db import Database
 from app.core.models import Entry
@@ -46,7 +43,6 @@ from app.ui.dialogs import AddEditDialog, confirm_delete
 from app.ui.styles import (
     LABEL_STYLE,
     INPUT_STYLE,
-    COMBO_STYLE,
     ICON_BTN_STYLE,
     GROUP_LIST_STYLE,
     PRIMARY_BTN_STYLE,
@@ -54,24 +50,11 @@ from app.ui.styles import (
     CARD_STYLE,
     INPUT_MIN_HEIGHT,
     BTN_MIN_HEIGHT,
-    PRIMARY_COLOR,
     BG_PAGE,
+    get_combo_style,
 )
 from app.utils.clipboard import copy_to_clipboard
-from app.ui.icon_gen import create_copy_icon, create_eye_icon, create_arrow_icon
-from app.utils.paths import get_data_dir
-
-
-def _get_combo_style() -> str:
-    """获取带正确箭头路径的下拉框样式"""
-    import os, sys
-    # 打包后资源在 sys._MEIPASS，开发时在项目根目录
-    if hasattr(sys, '_MEIPASS'):
-        base = sys._MEIPASS
-    else:
-        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    arrow_path = os.path.join(base, 'assets', 'arrow.png').replace('\\', '/')
-    return COMBO_STYLE.replace('%ARROW_PATH%', arrow_path)
+from app.ui.icon_gen import create_copy_icon, create_eye_icon
 
 
 # ── 首字母头像配色 ──
@@ -461,7 +444,7 @@ class MainWindow(QMainWindow):
 
         self._group_combo = AutoWidthCombo()
         self._group_combo.setFixedHeight(INPUT_MIN_HEIGHT)
-        self._group_combo.setStyleSheet(_get_combo_style())
+        self._group_combo.setStyleSheet(get_combo_style())
         self._group_combo.currentIndexChanged.connect(self._on_group_changed)
         group_row.addWidget(self._group_combo, stretch=1)
 
