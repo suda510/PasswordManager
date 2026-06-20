@@ -43,18 +43,18 @@ from app.ui.styles import (
 
 def _toast(parent, message, level="info", duration=2500):
     """标题右侧自动消失的通知"""
-    colors = {"info": "#323232", "error": "#e81123", "warn": "#d83b01"}
-    bg = colors.get(level, "#323232")
+    colors = {"info": "rgba(50,50,50,200)", "error": "rgba(232,17,35,200)", "warn": "rgba(216,59,1,200)"}
+    bg = colors.get(level, "rgba(50,50,50,200)")
 
-    # 截断过长文字
     display = message if len(message) <= 25 else message[:25] + "..."
 
     label = QLabel(parent)
-    label.setText(f" {display} ")
+    label.setText(display)
     label.setFont(QFont("Microsoft YaHei", 10))
+    label.setAlignment(Qt.AlignCenter)
     label.adjustSize()
-    label.setFixedHeight(30)
-    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 4px; }}")
+    label.setFixedSize(label.width() + 30, 32)
+    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 6px; }}")
 
     label.move(280, 26)
     label.raise_()
