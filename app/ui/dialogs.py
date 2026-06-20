@@ -177,28 +177,62 @@ class AddEditDialog(QDialog):
             )
 
 
-def confirm_delete(entry_title: str, parent=None) -> bool:
-    """确认删除条目（自定义样式对话框）"""
+def confirm_delete(entry_title: str, parent=None, entry=None) -> bool:
+    """确认删除条目（自定义样式对话框，显示条目详情）"""
     dialog = QDialog(parent)
     dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-    dialog.setFixedSize(380, 200)
+    dialog.setFixedSize(400, 280)
     dialog.setWindowTitle("确认删除")
+    dialog.setStyleSheet("""
+        QDialog { background: white; }
+        QLabel { color: #1a1a1a; background: transparent; }
+    """)
     if parent:
         dialog.setWindowIcon(parent.windowIcon())
 
     layout = QVBoxLayout(dialog)
-    layout.setSpacing(16)
+    layout.setSpacing(12)
     layout.setContentsMargins(28, 24, 28, 24)
 
     title = QLabel("确认删除")
     title.setFont(QFont("Microsoft YaHei", 16, QFont.DemiBold))
-    title.setStyleSheet("color: #1a1a1a; background: transparent;")
     layout.addWidget(title)
 
-    msg = QLabel(f'确定要删除 "{entry_title}" 吗？\n此操作不可撤销。')
+    # 条目详情预览
+    if entry:
+        info_card = QFrame()
+        info_card.setStyleSheet("""
+            QFrame {
+                background: #f8f8f8;
+                border: 1px solid #eee;
+                border-radius: 8px;
+            }
+        """)
+        info_layout = QVBoxLayout(info_card)
+        info_layout.setContentsMargins(16, 12, 16, 12)
+        info_layout.setSpacing(8)
+
+        info_title = QLabel(f"📌 {entry.title}")
+        info_title.setFont(QFont("Microsoft YaHei", 12, QFont.DemiBold))
+        info_layout.addWidget(info_title)
+
+        if entry.username:
+            info_user = QLabel(f"👤 {entry.username}")
+            info_user.setFont(QFont("Microsoft YaHei", 11))
+            info_user.setStyleSheet("color: #666;")
+            info_layout.addWidget(info_user)
+
+        if entry.group:
+            info_group = QLabel(f"📁 {entry.group}")
+            info_group.setFont(QFont("Microsoft YaHei", 11))
+            info_group.setStyleSheet("color: #666;")
+            info_layout.addWidget(info_group)
+
+        layout.addWidget(info_card)
+
+    msg = QLabel("此操作不可撤销，确定要删除吗？")
     msg.setFont(QFont("Microsoft YaHei", 11))
-    msg.setStyleSheet("color: #666; background: transparent;")
-    msg.setWordWrap(True)
+    msg.setStyleSheet("color: #e81123;")
     layout.addWidget(msg)
 
     layout.addStretch()
