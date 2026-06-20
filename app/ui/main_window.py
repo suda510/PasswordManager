@@ -920,29 +920,22 @@ class MainWindow(QMainWindow):
         self._search_debounce.start(300)
 
     def _fade_in_list(self):
-        """列表逐个淡入动画"""
-        from PyQt5.QtWidgets import QGraphicsOpacityEffect
-        from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
-
+        """列表逐个淡入动画（样式表渐变）"""
         for i in range(self._entry_list.count()):
             item = self._entry_list.item(i)
             widget = self._entry_list.itemWidget(item)
-            if not widget:
-                continue
-            # 用 QGraphicsOpacityEffect 替代 windowOpacity（对子 widget 有效）
-            effect = QGraphicsOpacityEffect(widget)
-            effect.setOpacity(0.0)
-            widget.setGraphicsEffect(effect)
-
-            anim = QPropertyAnimation(effect, b"opacity")
-            anim.setDuration(200)
-            anim.setStartValue(0.0)
-            anim.setEndValue(1.0)
-            anim.setEasingCurve(QEasingCurve.OutCubic)
-            # 逐个延迟，产生序列淡入效果
-            QTimer.singleShot(i * 30, anim.start)
-            # 保持引用
-            widget._fade_anim = anim
+            if widget:
+                # 初始透明背景
+                widget.setStyleSheet("""
+                    QFrame {
+                        background: rgba(255,255,255,0);
+                        border: none;
+                        border-left: 3px solid transparent;
+                        border-radius: 6px;
+                    }
+                """)
+                # 延迟恢复正式样式
+                QTimer.singleShot(i * 30 + 50, lambda w=widget: w._update_style(False))
 
     def _do_search(self):
         """执行搜索"""
