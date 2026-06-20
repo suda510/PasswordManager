@@ -348,13 +348,13 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background: #f0f0f0; }
         """
 
-        for icon, text, handler in [
-            ("📤", "导出数据", self._on_export),
-            ("✏️", "修改主密码", self._on_change_password),
-            ("🔒", "锁定", self._on_lock),
-            ("ℹ️", "关于", self._on_about),
+        for text, handler in [
+            ("导出数据", self._on_export),
+            ("修改主密码", self._on_change_password),
+            ("锁定", self._on_lock),
+            ("关于", self._on_about),
         ]:
-            btn = QPushButton(f" {icon} {text}")
+            btn = QPushButton(text)
             btn.setStyleSheet(btn_style)
             btn.setCursor(Qt.PointingHandCursor)
             btn.clicked.connect(handler)
