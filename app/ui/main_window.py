@@ -490,11 +490,26 @@ class MainWindow(QMainWindow):
         # 按钮行
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
+        btn_template = """
+            QPushButton {{
+                background: {bg};
+                color: {fg};
+                border: 1px solid {border};
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+            }}
+            QPushButton:hover {{ background: {hover}; }}
+        """
         self._add_btn = QPushButton("新增")
+        self._add_btn.setStyleSheet(btn_template.format(
+            bg="#e3f2fd", fg="#1565c0", border="#bbdefb", hover="#bbdefb"))
         self._edit_btn = QPushButton("编辑")
+        self._edit_btn.setStyleSheet(btn_template.format(
+            bg="#e8f5e9", fg="#2e7d32", border="#c8e6c9", hover="#c8e6c9"))
         self._delete_btn = QPushButton("删除")
-        for btn in (self._add_btn, self._edit_btn, self._delete_btn):
-            btn.setStyleSheet(BTN_STYLE)
+        self._delete_btn.setStyleSheet(btn_template.format(
+            bg="#ffebee", fg="#c62828", border="#ffcdd2", hover="#ffcdd2"))
         for btn in (self._add_btn, self._edit_btn, self._delete_btn):
             btn.setFixedHeight(BTN_MIN_HEIGHT)
         self._add_btn.clicked.connect(self._on_add)
