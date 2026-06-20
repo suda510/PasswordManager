@@ -331,8 +331,8 @@ class MainWindow(QMainWindow):
         for text, handler in [
             ("导出数据", self._on_export),
             ("修改主密码", self._on_change_password),
-            ("关于", self._on_about),
             ("锁定", self._on_lock),
+            ("关于", self._on_about),
         ]:
             btn = QPushButton(text)
             btn.setStyleSheet(btn_style)
