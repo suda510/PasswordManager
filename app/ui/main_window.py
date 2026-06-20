@@ -1171,8 +1171,8 @@ class MainWindow(QMainWindow):
             self._db.update_entry(dialog.get_entry())
             self._refresh_groups()
             self._load_entries()
-            # 重新选中编辑后的条目
-            self._select_entry_by_id(entry_id)
+            # 延迟选中，等淡入动画完成后再更新选中态
+            QTimer.singleShot(200, lambda: self._select_entry_by_id(entry_id))
             self._show_info("条目已更新")
 
     def _on_delete(self):
