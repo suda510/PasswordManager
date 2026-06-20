@@ -97,10 +97,9 @@ def _toast(parent, message, level="info"):
     label.setFont(QFont("Microsoft YaHei", 11))
     label.setAlignment(Qt.AlignCenter)
     label.adjustSize()
-    label.setFixedSize(label.width() + 24, 40)
+    label.setFixedSize(label.width() + 32, 40)
     label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 8px; }}")
 
-    # 与右侧详情标题同行（大约 y=28）
     label.move(parent.width() - label.width() - 20, 28)
     label.raise_()
     label.show()
