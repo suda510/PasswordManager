@@ -281,25 +281,44 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        # 1. 主背景渐变
+        central.setStyleSheet("""
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #f8f9fa, stop:1 #e9ecef);
+        """)
+
         # 主内容区
         content = QWidget()
+        content.setStyleSheet("background: transparent;")
         content_layout = QHBoxLayout(content)
         content_layout.setContentsMargins(20, 12, 20, 12)
         content_layout.setSpacing(16)
 
         # 左侧面板
         left_panel = self._create_left_panel()
+        # 2. 左侧卡片阴影
+        left_shadow = QGraphicsDropShadowEffect()
+        left_shadow.setBlurRadius(20)
+        left_shadow.setOffset(0, 2)
+        left_shadow.setColor(QColor(0, 0, 0, 25))
+        left_panel.setGraphicsEffect(left_shadow)
         content_layout.addWidget(left_panel, stretch=1)
 
         # 右侧面板
         right_panel = self._create_right_panel()
+        # 2. 右侧卡片阴影
+        right_shadow = QGraphicsDropShadowEffect()
+        right_shadow.setBlurRadius(20)
+        right_shadow.setOffset(0, 2)
+        right_shadow.setColor(QColor(0, 0, 0, 25))
+        right_panel.setGraphicsEffect(right_shadow)
         content_layout.addWidget(right_panel, stretch=1)
 
         main_layout.addWidget(content, stretch=1)
 
-        # 底部按钮栏（与内容区对齐）
+        # 底部按钮栏
         bottom = QWidget()
-        bottom.setStyleSheet("background: #f5f5f5;")
+        bottom.setStyleSheet("background: transparent;")
         bottom_layout = QHBoxLayout(bottom)
         bottom_layout.setContentsMargins(20, 8, 20, 12)
 
@@ -315,12 +334,13 @@ class MainWindow(QMainWindow):
         card_layout.setContentsMargins(12, 8, 12, 8)
         card_layout.setSpacing(4)
 
+        # 7. 底部按钮带图标
         btn_style = """
             QPushButton {
                 background: transparent;
                 border: none;
                 border-radius: 8px;
-                padding: 10px 24px;
+                padding: 10px 20px;
                 font-family: "Microsoft YaHei";
                 font-size: 13px;
                 color: #1a1a1a;
@@ -328,13 +348,13 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background: #f0f0f0; }
         """
 
-        for text, handler in [
-            ("导出数据", self._on_export),
-            ("修改主密码", self._on_change_password),
-            ("锁定", self._on_lock),
-            ("关于", self._on_about),
+        for icon, text, handler in [
+            ("📤", "导出数据", self._on_export),
+            ("✏️", "修改主密码", self._on_change_password),
+            ("🔒", "锁定", self._on_lock),
+            ("ℹ️", "关于", self._on_about),
         ]:
-            btn = QPushButton(text)
+            btn = QPushButton(f" {icon} {text}")
             btn.setStyleSheet(btn_style)
             btn.setCursor(Qt.PointingHandCursor)
             btn.clicked.connect(handler)
@@ -608,19 +628,28 @@ class MainWindow(QMainWindow):
         self._empty_state.setStyleSheet("background: transparent;")
         empty_layout = QVBoxLayout(self._empty_state)
         empty_layout.setAlignment(Qt.AlignCenter)
-        empty_layout.setSpacing(12)
+        empty_layout.setSpacing(16)
 
-        empty_icon = QLabel("\U0001f512")
-        empty_icon.setFont(QFont("Microsoft YaHei", 40))
+        # 大图标
+        empty_icon = QLabel("🔐")
+        empty_icon.setFont(QFont("Microsoft YaHei", 48))
         empty_icon.setAlignment(Qt.AlignCenter)
         empty_icon.setStyleSheet("background: transparent; border: none;")
         empty_layout.addWidget(empty_icon)
 
-        empty_text = QLabel("选择一个条目查看详情")
-        empty_text.setFont(QFont("Microsoft YaHei", 12))
-        empty_text.setAlignment(Qt.AlignCenter)
-        empty_text.setStyleSheet("color: #bbb; background: transparent; border: none;")
-        empty_layout.addWidget(empty_text)
+        # 主提示
+        empty_title = QLabel("选择一个条目查看详情")
+        empty_title.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
+        empty_title.setAlignment(Qt.AlignCenter)
+        empty_title.setStyleSheet("color: #aaa; background: transparent; border: none;")
+        empty_layout.addWidget(empty_title)
+
+        # 副提示
+        empty_hint = QLabel("或点击「新增」添加密码条目")
+        empty_hint.setFont(QFont("Microsoft YaHei", 11))
+        empty_hint.setAlignment(Qt.AlignCenter)
+        empty_hint.setStyleSheet("color: #ccc; background: transparent; border: none;")
+        empty_layout.addWidget(empty_hint)
 
         # 用 QStackedLayout 切换空状态和字段详情
         self._detail_stack = QStackedLayout()
