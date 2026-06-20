@@ -1149,8 +1149,8 @@ class MainWindow(QMainWindow):
         dialog = AddEditDialog(self, groups=self._get_all_groups())
         if dialog.exec_():
             self._db.add_entry(dialog.get_entry())
-            self._load_entries()
             self._refresh_groups()
+            self._load_entries()
             self._show_info("条目已添加")
 
     def _on_edit(self):
@@ -1160,8 +1160,8 @@ class MainWindow(QMainWindow):
         dialog = AddEditDialog(self, self._current_entry, groups=self._get_all_groups())
         if dialog.exec_():
             self._db.update_entry(dialog.get_entry())
-            self._load_entries()
             self._refresh_groups()
+            self._load_entries()
             self._show_info("条目已更新")
 
     def _on_delete(self):
@@ -1171,8 +1171,8 @@ class MainWindow(QMainWindow):
         if confirm_delete(self._current_entry.title, self):
             self._db.delete_entry(self._current_entry.id)
             self._clear_detail()
-            self._load_entries()
             self._refresh_groups()
+            self._load_entries()
             self._show_info("条目已删除")
 
     def _on_lock(self):
