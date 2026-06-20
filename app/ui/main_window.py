@@ -674,7 +674,7 @@ class MainWindow(QMainWindow):
     def _refresh_groups(self):
         """刷新分组下拉框"""
         self._group_combo.blockSignals(True)
-        current_text = self._group_combo.currentText()
+        current_group = self._current_group
 
         self._group_combo.clear()
         self._group_combo.addItem("全部分组", "")
@@ -686,10 +686,11 @@ class MainWindow(QMainWindow):
         self._group_combo.view().setMinimumWidth(self._group_combo.width())
 
         # 恢复之前选中的分组
-        if current_text:
-            idx = self._group_combo.findText(current_text)
-            if idx >= 0:
-                self._group_combo.setCurrentIndex(idx)
+        if current_group:
+            for i in range(self._group_combo.count()):
+                if self._group_combo.itemData(i) == current_group:
+                    self._group_combo.setCurrentIndex(i)
+                    break
 
         self._group_combo.blockSignals(False)
 
