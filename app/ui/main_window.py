@@ -963,6 +963,14 @@ class MainWindow(QMainWindow):
         for entry_id, card in self._card_widgets.items():
             card._update_style(selected=(entry_id == selected_id))
 
+    def _select_entry_by_id(self, entry_id: str):
+        """根据 ID 选中条目"""
+        for i in range(self._entry_list.count()):
+            item = self._entry_list.item(i)
+            if item and item.data(Qt.UserRole) == entry_id:
+                self._entry_list.setCurrentItem(item)
+                return
+
     def _on_entry_selected(self, current, _previous):
         if current is None:
             self._update_card_selection("")
@@ -1157,11 +1165,14 @@ class MainWindow(QMainWindow):
         if not self._current_entry:
             _toast(self, "请先选择一个条目")
             return
+        entry_id = self._current_entry.id
         dialog = AddEditDialog(self, self._current_entry, groups=self._get_all_groups())
         if dialog.exec_():
             self._db.update_entry(dialog.get_entry())
             self._refresh_groups()
             self._load_entries()
+            # 重新选中编辑后的条目
+            self._select_entry_by_id(entry_id)
             self._show_info("条目已更新")
 
     def _on_delete(self):
