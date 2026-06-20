@@ -5,6 +5,7 @@
 
 import hashlib
 import html as html_mod
+import re
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -87,24 +88,7 @@ def _avatar_color(text: str) -> str:
     return AVATAR_COLORS[idx]
 
 
-def _toast(parent, message, level="info"):
-    """右侧与标题同行的通知"""
-    colors = {"info": "rgba(50,50,50,200)", "error": "rgba(232,17,35,200)", "warn": "rgba(216,59,1,200)"}
-    bg = colors.get(level, "rgba(50,50,50,200)")
-
-    label = QLabel(parent)
-    label.setText(message)
-    label.setFont(QFont("Microsoft YaHei", 11))
-    label.setAlignment(Qt.AlignCenter)
-    label.adjustSize()
-    label.setFixedSize(label.width() + 32, 40)
-    label.setStyleSheet(f"* {{ background: {bg}; color: white; border-radius: 8px; }}")
-
-    label.move(parent.width() - label.width() - 20, 28)
-    label.raise_()
-    label.show()
-
-    QTimer.singleShot(2500, label.deleteLater)
+from app.ui.notification import show_toast as _toast
 
 
 def _confirm(parent, title, message):
@@ -229,7 +213,6 @@ class EntryCardWidget(QFrame):
     @staticmethod
     def _highlight(text: str, keyword: str) -> str:
         """高亮关键词"""
-        import re
         pattern = re.escape(keyword)
         return re.sub(
             pattern,
@@ -937,26 +920,29 @@ class MainWindow(QMainWindow):
         self._search_debounce.start(300)
 
     def _fade_in_list(self):
-        """列表淡入动画"""
+        """列表逐个淡入动画"""
+        from PyQt5.QtWidgets import QGraphicsOpacityEffect
         from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
 
         for i in range(self._entry_list.count()):
             item = self._entry_list.item(i)
             widget = self._entry_list.itemWidget(item)
-            if widget:
-                # 设置初始透明度
-                widget.setWindowOpacity(0.0)
-                # 创建动画
-                anim = QPropertyAnimation(widget, b"windowOpacity")
-                anim.setDuration(200)
-                anim.setStartValue(0.0)
-                anim.setEndValue(1.0)
-                anim.setEasingCurve(QEasingCurve.OutCubic)
-                # 延迟启动，产生逐个淡入效果
-                anim.setDuration(150)
-                anim.start()
-                # 保持动画引用
-                widget._fade_anim = anim
+            if not widget:
+                continue
+            # 用 QGraphicsOpacityEffect 替代 windowOpacity（对子 widget 有效）
+            effect = QGraphicsOpacityEffect(widget)
+            effect.setOpacity(0.0)
+            widget.setGraphicsEffect(effect)
+
+            anim = QPropertyAnimation(effect, b"opacity")
+            anim.setDuration(200)
+            anim.setStartValue(0.0)
+            anim.setEndValue(1.0)
+            anim.setEasingCurve(QEasingCurve.OutCubic)
+            # 逐个延迟，产生序列淡入效果
+            QTimer.singleShot(i * 30, anim.start)
+            # 保持引用
+            widget._fade_anim = anim
 
     def _do_search(self):
         """执行搜索"""
@@ -990,9 +976,12 @@ class MainWindow(QMainWindow):
             return
         entry_id = current.data(Qt.UserRole)
         self._current_entry = self._db.get_entry(entry_id)
-        self._update_card_selection(entry_id)
         if self._current_entry:
+            self._update_card_selection(entry_id)
             self._show_detail(self._current_entry)
+        else:
+            self._update_card_selection("")
+            self._clear_detail()
 
     # ── 详情面板 ──
 
@@ -1095,7 +1084,7 @@ class MainWindow(QMainWindow):
 
         # 密码（重置为隐藏状态）
         self._password_visible = False
-        self._password_toggle_btn.setText("👁")
+        self._password_toggle_btn.setIcon(create_eye_icon(True))
         self._password_value.setText("•" * len(entry.password) if entry.password else "（无）")
 
         # 网址（有内容才显示）
