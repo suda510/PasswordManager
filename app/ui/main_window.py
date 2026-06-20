@@ -579,7 +579,7 @@ class MainWindow(QMainWindow):
         self._fields_layout.addWidget(self._password_block)
 
         # 网址（有内容才显示）
-        self._url_block = self._create_field_block("网  址", "url")
+        self._url_block = self._create_field_block("网  址", "url", copyable=True)
         self._fields_layout.addWidget(self._url_block)
         self._url_block.hide()
 
@@ -698,11 +698,25 @@ class MainWindow(QMainWindow):
         rename_btn = QPushButton("重命名")
         rename_btn.setFixedHeight(BTN_MIN_HEIGHT)
         rename_btn.setStyleSheet(BTN_STYLE)
+        rename_btn.setCursor(Qt.PointingHandCursor)
         rename_btn.setEnabled(False)
 
         delete_btn = QPushButton("删除分组")
         delete_btn.setFixedHeight(BTN_MIN_HEIGHT)
-        delete_btn.setStyleSheet("color: #e81123; border: none; background: transparent; font-size: 13px;")
+        delete_btn.setStyleSheet("""
+            QPushButton {
+                color: #e81123;
+                background: #fff0f0;
+                border: 1px solid #ffd0d0;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background: #ffe0e0;
+            }
+        """)
+        delete_btn.setCursor(Qt.PointingHandCursor)
         delete_btn.setEnabled(False)
 
         btn_row.addStretch()
@@ -951,6 +965,8 @@ class MainWindow(QMainWindow):
                 copy_btn.clicked.connect(self._copy_username)
             elif field_name == "password":
                 copy_btn.clicked.connect(self._copy_password)
+            elif field_name == "url":
+                copy_btn.clicked.connect(self._copy_url)
             val_row.addWidget(copy_btn, alignment=Qt.AlignVCenter)
             setattr(self, f"_{field_name}_copy_btn", copy_btn)
 
@@ -1055,6 +1071,11 @@ class MainWindow(QMainWindow):
         if self._current_entry:
             copy_to_clipboard(self._current_entry.password)
             self._show_info("密码已复制到剪贴板")
+
+    def _copy_url(self):
+        if self._current_entry:
+            copy_to_clipboard(self._current_entry.url)
+            self._show_info("网址已复制到剪贴板")
 
     def _on_add(self):
         dialog = AddEditDialog(self, groups=self._get_all_groups())
