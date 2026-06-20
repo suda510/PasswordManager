@@ -1167,7 +1167,7 @@ class MainWindow(QMainWindow):
         if not self._current_entry:
             _toast(self, "请先选择一个条目")
             return
-        if confirm_delete(self._current_entry.title, self, entry=self._current_entry):
+        if confirm_delete(self._current_entry.title, self):
             self._db.delete_entry(self._current_entry.id)
             self._clear_detail()
             self._load_entries()
