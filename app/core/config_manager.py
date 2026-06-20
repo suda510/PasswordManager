@@ -62,11 +62,14 @@ class ConfigManager:
         return bytes.fromhex(raw)
 
     def get_iterations(self) -> int:
-        """获取 KDF 迭代次数，缺失则返回默认值"""
+        """获取 KDF 迭代次数，缺失或无效则返回默认值"""
         raw = self.get("kdf_iterations")
         if not raw:
             return 600000
-        return int(raw)
+        try:
+            return int(raw)
+        except (ValueError, TypeError):
+            return 600000
 
     # ── 自定义分组管理 ──
 
