@@ -172,9 +172,10 @@ def _first_char(text: str) -> str:
 class EntryCardWidget(QFrame):
     """条目卡片组件：左侧头像 + 右侧标题/用户名"""
 
-    def __init__(self, entry: Entry, parent=None):
+    def __init__(self, entry: Entry, keyword: str = "", parent=None):
         super().__init__(parent)
         self._entry = entry
+        self._keyword = keyword
         self._setup_ui()
 
     def _setup_ui(self):
@@ -207,7 +208,13 @@ class EntryCardWidget(QFrame):
         text_layout.setContentsMargins(0, 0, 0, 0)
         text_layout.setSpacing(3)
 
-        title_label = QLabel(self._entry.title)
+        # 标题（支持搜索高亮）
+        title_text = self._entry.title
+        if self._keyword and self._keyword.lower() in title_text.lower():
+            highlighted = self._highlight(title_text, self._keyword)
+            title_label = QLabel(highlighted)
+        else:
+            title_label = QLabel(title_text)
         title_label.setFont(QFont("Microsoft YaHei", 12, QFont.DemiBold))
         title_label.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
         text_layout.addWidget(title_label)
@@ -218,6 +225,18 @@ class EntryCardWidget(QFrame):
         text_layout.addWidget(user_label)
 
         layout.addLayout(text_layout, stretch=1)
+
+    @staticmethod
+    def _highlight(text: str, keyword: str) -> str:
+        """高亮关键词"""
+        import re
+        pattern = re.escape(keyword)
+        return re.sub(
+            pattern,
+            lambda m: f'<span style="background:#fff3cd; color:#856404; border-radius:2px; padding:0 2px;">{m.group()}</span>',
+            text,
+            flags=re.IGNORECASE,
+        )
 
     def _update_style(self, selected: bool):
         """更新卡片样式（选中/未选中）"""
@@ -883,13 +902,13 @@ class MainWindow(QMainWindow):
 
     # ── 条目列表 ──
 
-    def _add_list_item(self, entry: Entry):
+    def _add_list_item(self, entry: Entry, keyword: str = ""):
         """添加一个卡片式列表项"""
         item = QListWidgetItem()
         item.setData(Qt.UserRole, entry.id)
         item.setSizeHint(QSize(200, 60))
         self._entry_list.addItem(item)
-        card = EntryCardWidget(entry)
+        card = EntryCardWidget(entry, keyword=keyword)
         self._entry_list.setItemWidget(item, card)
         self._card_widgets[entry.id] = card
 
@@ -910,10 +929,34 @@ class MainWindow(QMainWindow):
             self._add_list_item(entry)
         self._entry_list.setUpdatesEnabled(True)
         self._clear_detail()
+        # 淡入动画
+        self._fade_in_list()
 
     def _on_search(self, text: str):
         """搜索（带防抖）"""
         self._search_debounce.start(300)
+
+    def _fade_in_list(self):
+        """列表淡入动画"""
+        from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
+
+        for i in range(self._entry_list.count()):
+            item = self._entry_list.item(i)
+            widget = self._entry_list.itemWidget(item)
+            if widget:
+                # 设置初始透明度
+                widget.setWindowOpacity(0.0)
+                # 创建动画
+                anim = QPropertyAnimation(widget, b"windowOpacity")
+                anim.setDuration(200)
+                anim.setStartValue(0.0)
+                anim.setEndValue(1.0)
+                anim.setEasingCurve(QEasingCurve.OutCubic)
+                # 延迟启动，产生逐个淡入效果
+                anim.setDuration(150)
+                anim.start()
+                # 保持动画引用
+                widget._fade_anim = anim
 
     def _do_search(self):
         """执行搜索"""
@@ -921,17 +964,17 @@ class MainWindow(QMainWindow):
         if not text.strip():
             self._load_entries()
             return
-        # 批量更新，减少重绘
+        keyword = text.strip()
         self._entry_list.setUpdatesEnabled(False)
         self._entry_list.clear()
         self._card_widgets.clear()
         self._current_entry = None
-        results = self._db.search_entries(text.strip())
+        results = self._db.search_entries(keyword)
         if self._current_group:
             results = [e for e in results if e.group == self._current_group]
         self._entries = results
         for entry in self._entries:
-            self._add_list_item(entry)
+            self._add_list_item(entry, keyword=keyword)
         self._entry_list.setUpdatesEnabled(True)
         self._clear_detail()
 
@@ -1142,7 +1185,7 @@ class MainWindow(QMainWindow):
         if not self._current_entry:
             _toast(self, "请先选择一个条目")
             return
-        if confirm_delete(self._current_entry.title, self):
+        if confirm_delete(self._current_entry.title, self, entry=self._current_entry):
             self._db.delete_entry(self._current_entry.id)
             self._clear_detail()
             self._load_entries()
