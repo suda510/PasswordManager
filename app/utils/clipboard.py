@@ -26,6 +26,11 @@ def _clear():
         clipboard.clear()
 
 
+def clear_clipboard():
+    """立即清空剪贴板"""
+    _clear()
+
+
 def copy_to_clipboard(text: str, auto_clear: bool = True):
     clipboard = QApplication.clipboard()
     if clipboard:

@@ -1,9 +1,12 @@
-"""统一通知组件
+"""共享 UI 工具
 
-滑入/滑出动画，半透明背景，视觉一致。
+通知组件 + 确认对话框，供各窗口复用。
 """
 
-from PyQt5.QtWidgets import QLabel, QGraphicsDropShadowEffect
+from PyQt5.QtWidgets import (
+    QLabel, QGraphicsDropShadowEffect,
+    QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
+)
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint
 from PyQt5.QtGui import QFont, QColor
 
@@ -89,3 +92,62 @@ def _cleanup(label):
     if label in _active:
         _active.remove(label)
     label.deleteLater()
+
+
+def confirm_dialog(parent, title, message):
+    """自定义确认对话框，返回 True/False"""
+    from app.ui.styles import BTN_STYLE, PRIMARY_BTN_STYLE, BTN_MIN_HEIGHT
+
+    dialog = QDialog(None)
+    dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+    dialog.setFixedSize(400, 200)
+    dialog.setWindowTitle(title)
+    dialog.setStyleSheet("""
+        QDialog { background: white; }
+        QLabel { color: #1a1a1a; background: transparent; }
+        QPushButton {
+            border-radius: 6px; padding: 8px 20px; font-size: 13px;
+        }
+    """)
+
+    if parent:
+        px = parent.x() + (parent.width() - 400) // 2
+        py = parent.y() + (parent.height() - 200) // 2
+        dialog.move(px, py)
+
+    layout = QVBoxLayout(dialog)
+    layout.setSpacing(12)
+    layout.setContentsMargins(28, 20, 28, 20)
+
+    t = QLabel(title)
+    t.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
+    t.setStyleSheet("color: #1a1a1a; background: transparent;")
+    layout.addWidget(t)
+
+    m = QLabel(message)
+    m.setFont(QFont("Microsoft YaHei", 11))
+    m.setStyleSheet("color: #666; background: transparent;")
+    m.setWordWrap(True)
+    layout.addWidget(m)
+
+    layout.addStretch()
+
+    btn_row = QHBoxLayout()
+    btn_row.setSpacing(8)
+    btn_row.addStretch()
+
+    cancel = QPushButton("取消")
+    cancel.setStyleSheet(BTN_STYLE)
+    cancel.setFixedHeight(BTN_MIN_HEIGHT)
+    cancel.clicked.connect(dialog.reject)
+
+    ok = QPushButton("确定")
+    ok.setStyleSheet(PRIMARY_BTN_STYLE)
+    ok.setFixedHeight(BTN_MIN_HEIGHT)
+    ok.clicked.connect(dialog.accept)
+
+    btn_row.addWidget(cancel)
+    btn_row.addWidget(ok)
+    layout.addLayout(btn_row)
+
+    return dialog.exec_() == QDialog.Accepted

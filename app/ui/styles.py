@@ -13,45 +13,46 @@ def get_combo_style() -> str:
     arrow_path = os.path.join(base, 'assets', 'arrow.png').replace('\\', '/')
     return COMBO_STYLE.replace('%ARROW_PATH%', arrow_path)
 
-PRIMARY_COLOR = "#0078d4"
-PRIMARY_HOVER = "#106ebe"
-PRIMARY_PRESSED = "#005a9e"
-DANGER_COLOR = "#e81123"
-SUCCESS_COLOR = "#107c10"
-WARNING_COLOR = "#d83b01"
-TEXT_PRIMARY = "#1a1a1a"
-TEXT_SECONDARY = "#666666"
-TEXT_MUTED = "#999999"
+PRIMARY_COLOR = "#2563eb"
+PRIMARY_HOVER = "#1d4ed8"
+PRIMARY_PRESSED = "#1e40af"
+DANGER_COLOR = "#dc2626"
+SUCCESS_COLOR = "#16a34a"
+WARNING_COLOR = "#ea580c"
+TEXT_PRIMARY = "#111827"
+TEXT_SECONDARY = "#4b5563"
+TEXT_MUTED = "#9ca3af"
 BG_CARD = "white"
-BG_PAGE = "#f5f5f5"
+BG_PAGE = "#f8fafc"
 
 INPUT_STYLE = """
     QLineEdit, QTextEdit {
-        border: 1px solid #ddd;
-        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
         padding: 8px 12px;
         font-size: 13px;
         background: white;
-        color: #1a1a1a;
+        color: #111827;
+        selection-background-color: #bfdbfe;
     }
     QLineEdit:focus, QTextEdit:focus {
-        border: 2px solid #0078d4;
+        border: 2px solid #2563eb;
     }
 """
 
 COMBO_STYLE = """
     QComboBox {
-        border: 1px solid #e0e0e0;
+        border: 1px solid #d1d5db;
         border-radius: 8px;
         padding: 8px 12px;
         padding-right: 36px;
         font-size: 13px;
         background: white;
-        color: #1a1a1a;
+        color: #111827;
         min-height: 20px;
     }
     QComboBox:focus {
-        border: 2px solid #0078d4;
+        border: 2px solid #2563eb;
     }
     QComboBox::drop-down {
         subcontrol-origin: padding;
@@ -142,35 +143,35 @@ ICON_BTN_STYLE = """
 
 PRIMARY_BTN_STYLE = """
     QPushButton {
-        background: #0078d4;
+        background: #2563eb;
         color: white;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         padding: 8px 20px;
         font-size: 13px;
         font-weight: 600;
     }
-    QPushButton:hover { background: #106ebe; }
-    QPushButton:pressed { background: #005a9e; }
-    QPushButton:disabled { background: #ccc; }
+    QPushButton:hover { background: #1d4ed8; }
+    QPushButton:pressed { background: #1e40af; }
+    QPushButton:disabled { background: #9ca3af; color: #e5e7eb; }
 """
 
 BTN_STYLE = """
     QPushButton {
-        background: #f0f0f0;
-        color: #1a1a1a;
-        border: 1px solid #ddd;
-        border-radius: 6px;
+        background: #f3f4f6;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
         padding: 8px 20px;
         font-size: 13px;
     }
-    QPushButton:hover { background: #e5e5e5; }
-    QPushButton:pressed { background: #d9d9d9; }
+    QPushButton:hover { background: #e5e7eb; }
+    QPushButton:pressed { background: #d1d5db; }
 """
 
 LINK_BTN_STYLE = """
     QPushButton {
-        color: #0078d4;
+        color: #2563eb;
         border: none;
         background: transparent;
         font-size: 13px;
@@ -180,7 +181,7 @@ LINK_BTN_STYLE = """
 
 DANGER_BTN_STYLE = """
     QPushButton {
-        color: #e81123;
+        color: #dc2626;
         border: none;
         background: transparent;
         font-size: 13px;
@@ -190,20 +191,20 @@ DANGER_BTN_STYLE = """
 
 CLOSE_BTN_STYLE = """
     QPushButton {
-        color: #999;
+        color: #9ca3af;
         font-size: 15px;
         font-weight: bold;
         background: transparent;
         border: none;
         border-radius: 15px;
     }
-    QPushButton:hover { color: white; background: #e81123; }
+    QPushButton:hover { color: white; background: #ef4444; }
 """
 
-CARD_STYLE = "background: white; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);"
+CARD_STYLE = "background: white; border-radius: 12px; border: 1px solid #e5e7eb;"
 
-LABEL_STYLE = "color: #1a1a1a; font-size: 13px; font-weight: 500; background: transparent; border: none;"
-LABEL_MUTED_STYLE = "color: #999; font-size: 12px; background: transparent; border: none;"
+LABEL_STYLE = "color: #111827; font-size: 13px; font-weight: 500; background: transparent; border: none;"
+LABEL_MUTED_STYLE = "color: #9ca3af; font-size: 12px; background: transparent; border: none;"
 
 INPUT_MIN_HEIGHT = 38
 BTN_MIN_HEIGHT = 38

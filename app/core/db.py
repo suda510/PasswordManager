@@ -11,7 +11,7 @@ from typing import Optional
 
 from app.core.models import Entry
 from app.core.crypto import encrypt_field, decrypt_field
-from app.utils.paths import get_data_dir, get_db_path
+from app.utils.paths import get_db_path
 
 
 class Database:

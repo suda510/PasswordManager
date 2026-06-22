@@ -73,6 +73,10 @@ def main():
 
     create_login_window()
 
+    # 退出时清空剪贴板（防止密码残留）
+    from app.utils.clipboard import clear_clipboard
+    app.aboutToQuit.connect(clear_clipboard)
+
     ret = app.exec_()
     config.close()
     sys.exit(ret)

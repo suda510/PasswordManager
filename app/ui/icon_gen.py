@@ -166,11 +166,18 @@ def _create_icon_pixmap(size: int = 256) -> QPixmap:
     return pixmap
 
 
+_app_icon_cache = None
+
+
 def create_app_icon() -> QIcon:
-    """创建应用图标（多尺寸）"""
+    """创建应用图标（多尺寸，带缓存）"""
+    global _app_icon_cache
+    if _app_icon_cache is not None:
+        return _app_icon_cache
     icon = QIcon()
     for size in (16, 24, 32, 48, 64, 128, 256):
         icon.addPixmap(_create_icon_pixmap(size))
+    _app_icon_cache = icon
     return icon
 
 

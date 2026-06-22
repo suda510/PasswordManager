@@ -104,9 +104,16 @@ class AddEditDialog(QDialog):
         notes_label.setStyleSheet(LABEL_STYLE)
         layout.addWidget(notes_label)
         self._notes_input = QTextEdit()
-        self._notes_input.setPlaceholderText("备注信息（可选）")
+        self._notes_input.setPlaceholderText("备注信息（可选，最多 200 字）")
         self._notes_input.setMaximumHeight(80)
         layout.addWidget(self._notes_input)
+
+        # 字数统计
+        self._notes_counter = QLabel("0 / 200")
+        self._notes_counter.setStyleSheet("color: #9ca3af; font-size: 11px; background: transparent; border: none;")
+        self._notes_counter.setAlignment(Qt.AlignRight)
+        layout.addWidget(self._notes_counter)
+        self._notes_input.textChanged.connect(self._update_notes_counter)
 
         # 填充编辑数据
         if self._is_edit:
@@ -115,6 +122,7 @@ class AddEditDialog(QDialog):
             self._inputs["password"].setText(self._entry.password)
             self._url_input.setText(self._entry.url)
             self._notes_input.setPlainText(self._entry.notes)
+            self._update_notes_counter()
             if self._entry.group:
                 for i in range(self._group_combo.count()):
                     if self._group_combo.itemData(i) == self._entry.group:
@@ -139,11 +147,29 @@ class AddEditDialog(QDialog):
         btn_layout.addWidget(self._save_btn)
         layout.addLayout(btn_layout)
 
+    def _update_notes_counter(self):
+        """更新备注字数统计"""
+        count = len(self._notes_input.toPlainText())
+        self._notes_counter.setText(f"{count} / 200")
+        if count > 200:
+            self._notes_counter.setStyleSheet("color: #dc2626; font-size: 11px; background: transparent; border: none;")
+        else:
+            self._notes_counter.setStyleSheet("color: #9ca3af; font-size: 11px; background: transparent; border: none;")
+
     def _on_save(self):
+        from app.ui.notification import show_toast as _toast
+
         title = self._inputs["title"].text().strip()
         if not title:
+            _toast(self, "请输入标题", "warn")
             self._inputs["title"].setFocus()
             return
+
+        notes = self._notes_input.toPlainText().strip()
+        if len(notes) > 200:
+            _toast(self, "备注最多 200 字", "warn")
+            return
+
         self.accept()
 
     def get_entry(self) -> Entry:
@@ -207,7 +233,7 @@ def confirm_delete(entry_title: str, parent=None) -> bool:
     delete_btn = QPushButton("删除")
     delete_btn.setStyleSheet("""
         QPushButton {
-            background: #e81123;
+            background: #dc2626;
             color: white;
             border: none;
             border-radius: 6px;

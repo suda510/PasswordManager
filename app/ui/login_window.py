@@ -5,6 +5,7 @@
 """
 
 from PyQt5.QtWidgets import (
+    QApplication,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -18,9 +19,7 @@ from PyQt5.QtGui import QFont, QMouseEvent
 
 from app.core.crypto import (
     generate_salt,
-    derive_key,
-    hash_master_password,
-    verify_master_password,
+    derive_key_and_hash,
     generate_recovery_key,
     hash_recovery_key,
     verify_recovery_key,
@@ -41,65 +40,7 @@ from app.ui.styles import (
 )
 
 
-from app.ui.notification import show_toast as _toast
-
-
-def _confirm(parent, title, message):
-    """自定义确认对话框，返回 True/False"""
-    dialog = QDialog(None)
-    dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
-    dialog.setFixedSize(400, 200)
-    dialog.setWindowTitle(title)
-    dialog.setStyleSheet("""
-        QDialog { background: white; }
-        QLabel { color: #1a1a1a; background: transparent; }
-        QPushButton {
-            border-radius: 6px; padding: 8px 20px; font-size: 13px;
-        }
-    """)
-
-    # 居中到父窗口
-    if parent:
-        px = parent.x() + (parent.width() - 400) // 2
-        py = parent.y() + (parent.height() - 200) // 2
-        dialog.move(px, py)
-
-    layout = QVBoxLayout(dialog)
-    layout.setSpacing(12)
-    layout.setContentsMargins(28, 20, 28, 20)
-
-    t = QLabel(title)
-    t.setFont(QFont("Microsoft YaHei", 14, QFont.DemiBold))
-    t.setStyleSheet("color: #1a1a1a; background: transparent;")
-    layout.addWidget(t)
-
-    m = QLabel(message)
-    m.setFont(QFont("Microsoft YaHei", 11))
-    m.setStyleSheet("color: #666; background: transparent;")
-    m.setWordWrap(True)
-    layout.addWidget(m)
-
-    layout.addStretch()
-
-    btn_row = QHBoxLayout()
-    btn_row.setSpacing(8)
-    btn_row.addStretch()
-
-    cancel = QPushButton("取消")
-    cancel.setStyleSheet(BTN_STYLE)
-    cancel.setFixedHeight(BTN_MIN_HEIGHT)
-    cancel.clicked.connect(dialog.reject)
-
-    ok = QPushButton("确定")
-    ok.setStyleSheet(PRIMARY_BTN_STYLE)
-    ok.setFixedHeight(BTN_MIN_HEIGHT)
-    ok.clicked.connect(dialog.accept)
-
-    btn_row.addWidget(cancel)
-    btn_row.addWidget(ok)
-    layout.addLayout(btn_row)
-
-    return dialog.exec_() == QDialog.Accepted
+from app.ui.notification import show_toast as _toast, confirm_dialog as _confirm
 
 
 class RecoveryKeyDialog(QDialog):
@@ -245,7 +186,7 @@ class ForgotPasswordDialog(QDialog):
         danger_btn.setFixedHeight(BTN_MIN_HEIGHT)
         danger_btn.setStyleSheet("""
             QPushButton {
-                color: #e81123;
+                color: #dc2626;
                 border: none;
                 background: transparent;
                 font-size: 13px;
@@ -303,8 +244,7 @@ class ForgotPasswordDialog(QDialog):
             return
 
         new_salt = generate_salt()
-        new_key = derive_key(new_password, new_salt, DEFAULT_ITERATIONS)
-        new_hash = hash_master_password(new_password, new_salt, DEFAULT_ITERATIONS)
+        new_key, new_hash = derive_key_and_hash(new_password, new_salt, DEFAULT_ITERATIONS)
 
         self._config.set("master_password_hash", new_hash)
         self._config.set("salt", new_salt.hex())
@@ -334,10 +274,10 @@ class ForgotPasswordDialog(QDialog):
             QDialog { background: white; }
             QLabel { color: #1a1a1a; background: transparent; }
             QPushButton {
-                background: #0078d4; color: white; border: none;
+                background: #2563eb; color: white; border: none;
                 border-radius: 6px; padding: 8px 20px; font-size: 13px; font-weight: 600;
             }
-            QPushButton:hover { background: #106ebe; }
+            QPushButton:hover { background: #1d4ed8; }
         """)
 
         # 居中到父窗口
@@ -415,9 +355,6 @@ class LoginWindow(QWidget):
     def mouseReleaseEvent(self, event: QMouseEvent):
         self._drag_pos = None
         event.accept()
-
-    def _show_info(self, message: str):
-        _toast(self, message)
 
     def _show_error(self, message: str):
         _toast(self, message, "error")
@@ -555,7 +492,7 @@ class LoginWindow(QWidget):
                 background: transparent;
                 border: none;
                 color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #0078d4, stop:0.5 #00b4d8, stop:1 #0078d4);
+                    stop:0 #2563eb, stop:0.5 #06b6d4, stop:1 #2563eb);
                 padding: 4px 0;
             }
         """)
@@ -631,6 +568,10 @@ class LoginWindow(QWidget):
         if self._is_first_run:
             self._handle_first_run(password)
         else:
+            # 显示加载状态
+            self._submit_btn.setText("正在解锁...")
+            self._submit_btn.setEnabled(False)
+            QApplication.processEvents()
             self._handle_login(password)
 
     def _handle_first_run(self, password: str):
@@ -640,8 +581,7 @@ class LoginWindow(QWidget):
             return
 
         salt = generate_salt()
-        key = derive_key(password, salt, DEFAULT_ITERATIONS)
-        master_hash = hash_master_password(password, salt, DEFAULT_ITERATIONS)
+        key, master_hash = derive_key_and_hash(password, salt, DEFAULT_ITERATIONS)
 
         recovery_key = generate_recovery_key()
         recovery_hash = hash_recovery_key(recovery_key, salt, DEFAULT_ITERATIONS)
@@ -666,15 +606,22 @@ class LoginWindow(QWidget):
             iterations = self._config.get_iterations()
         except ValueError:
             self._show_error("配置损坏，请重新设置")
+            self._submit_btn.setText("解锁")
+            self._submit_btn.setEnabled(True)
             return
 
-        if verify_master_password(password, salt, stored_hash, iterations):
-            key = derive_key(password, salt, iterations)
+        # 一次 PBKDF2 同时得到 key 和 hash，避免重复计算
+        import hmac
+        key, computed_hash = derive_key_and_hash(password, salt, iterations)
+        if hmac.compare_digest(computed_hash, stored_hash):
             self.login_success.emit(key)
         else:
             self._show_error("主密码错误")
             self._password_input.clear()
             self._password_input.setFocus()
+            # 恢复按钮状态
+            self._submit_btn.setText("解锁")
+            self._submit_btn.setEnabled(True)
 
     def _on_forgot(self):
         dialog = ForgotPasswordDialog(self._config, self)

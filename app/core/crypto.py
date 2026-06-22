@@ -1,16 +1,15 @@
 """加密/解密模块
 
 使用 AES-256-GCM 加密敏感字段，PBKDF2-HMAC-SHA256 派生密钥。
+
+cryptography 的 import 延迟到函数内部，避免拖慢登录窗口弹出速度。
+Python 会缓存已加载的模块，后续调用不会重复 import。
 """
 
 import base64
 import os
 import secrets
 import string
-
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import hashes
 
 
 # 常量
@@ -36,6 +35,9 @@ def derive_key(password: str, salt: bytes, iterations: int = DEFAULT_ITERATIONS)
     Returns:
         32 字节密钥
     """
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives import hashes
+
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=KEY_LENGTH,
@@ -55,6 +57,8 @@ def encrypt_field(key: bytes, plaintext: str) -> dict:
     Returns:
         包含 nonce 和 ciphertext 的字典（base64 编码）
     """
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     nonce = os.urandom(NONCE_LENGTH)
     aesgcm = AESGCM(key)
     ciphertext = aesgcm.encrypt(nonce, plaintext.encode("utf-8"), None)
@@ -78,11 +82,30 @@ def decrypt_field(key: bytes, nonce_b64: str, ciphertext_b64: str) -> str:
     Raises:
         cryptography.exceptions.InvalidTag: 密钥错误或数据被篡改
     """
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     nonce = base64.b64decode(nonce_b64)
     ciphertext = base64.b64decode(ciphertext_b64)
     aesgcm = AESGCM(key)
     plaintext = aesgcm.decrypt(nonce, ciphertext, None)
     return plaintext.decode("utf-8")
+
+
+def derive_key_and_hash(password: str, salt: bytes, iterations: int = DEFAULT_ITERATIONS) -> tuple[bytes, str]:
+    """一次 PBKDF2 同时返回加密密钥和验证哈希
+
+    避免 login 时重复调用 derive_key + hash_master_password。
+
+    Args:
+        password: 用户主密码
+        salt: 盐值
+        iterations: PBKDF2 迭代次数
+
+    Returns:
+        (key, hash_b64) 元组
+    """
+    key = derive_key(password, salt, iterations)
+    return key, base64.b64encode(key).decode("ascii")
 
 
 def hash_master_password(password: str, salt: bytes, iterations: int = DEFAULT_ITERATIONS) -> str:
